@@ -1,0 +1,351 @@
+-- animations.lua
+-- Other Scripts tab – Standard & Hybrid animations + Build Manager + Emotes
+
+return function(Win, hub)
+    local OST = Win:Tab({
+        Title = "Other Scripts",
+        Icon = "file-code"
+    })
+
+    local OM = OST:MultiSection({
+        Title = "Animations & Extras",
+        Sections = {"Standard", "Hybrid", "Build Manager", "Emotes & Extra"}
+    })
+
+    local animList = {
+        "Adidas Aura", "Adidas Community", "Wicked Dancing", "Catwalk Glam", "NFL",
+        "Wicked Popular", "Unboxed", "Adidas Sports", "No Boundaries", "Bold Elf",
+        "Astronaut", "Toy", "Levitation", "Ninja", "Oldschool", "Werewolf", "Zombie",
+        "Knight", "Elder", "Superhero", "Stylish", "Robot", "Rthro", "Mage",
+        "Cartoony", "Bubbly", "Vampire", "Pirate"
+    }
+
+    local AnimationPacks = {
+        ["Adidas Aura"] = { idle = "110211186840347", walk = "83842218823011", run = "118320322718866", jump = "109996626521204", fall = "95603166884636", climb = "97824616490448", swim = "134530128383903" },
+        ["Adidas Community"] = { idle = "122257458498464", walk = "122150855457006", run = "82598234841035", jump = "75290611992385", fall = "98600215928904", climb = "88763136693023", swim = "133308483266208" },
+        -- ... (all other packs – keep them as in your previous version)
+        ["Rthro"] = { idle = "2510196951", walk = "2510202577", run = "2510198475", jump = "2510197830", fall = "2510195892", climb = "2510192778", swim = "2510199791" },
+    }
+
+    local currentBundle = "Rthro"
+    local animationsEnabled = false
+
+    local function refreshAnims(char)
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if hum then
+            for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+                track:Stop(0)
+            end
+        end
+    end
+
+    local function applyAnimations(char)
+        local hum = char:WaitForChild("Humanoid", 5)
+        local animate = char:WaitForChild("Animate", 5)
+        if not hum or not animate then return end
+
+        local animData = {}
+
+        if hub.HybridMode then
+            animData = {
+                idle  = hub.H_Idle  or "2510196951",
+                walk  = hub.H_Walk  or "2510202577",
+                run   = hub.H_Run   or "2510198475",
+                jump  = hub.H_Jump  or "2510197830",
+                fall  = hub.H_Fall  or "2510195892",
+                climb = hub.H_Climb or "2510192778",
+                swim  = hub.H_Swim  or "2510199791"
+            }
+        else
+            local pack = AnimationPacks[currentBundle] or AnimationPacks["Rthro"]
+            animData = pack
+        end
+
+        for animName, id in pairs(animData) do
+            if id and id ~= "" then
+                local containerName = animName:gsub("^%l", string.upper)
+                local container = animate:FindFirstChild(animName) or animate:FindFirstChild(containerName)
+                if container then
+                    for _, obj in pairs(container:GetChildren()) do
+                        if obj:IsA("Animation") then
+                            obj.AnimationId = "rbxassetid://" .. id
+                        end
+                    end
+                end
+            end
+        end
+
+        animate.Disabled = true
+        refreshAnims(char)
+        task.wait(0.08)
+        animate.Disabled = false
+        hum:ChangeState(Enum.HumanoidStateType.Landed)
+    end
+
+    local function onCharacterAdded(char)
+        task.delay(0.4, function()
+            if animationsEnabled then
+                applyAnimations(char)
+            end
+        end)
+
+        char.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") and animationsEnabled then
+                task.delay(0.06, function()
+                    if char.Parent then refreshAnims(char) end
+                end)
+            end
+        end)
+
+        char.ChildRemoved:Connect(function(child)
+            if child:IsA("Tool") and animationsEnabled then
+                task.delay(0.06, function()
+                    if char.Parent then refreshAnims(char) end
+                end)
+            end
+        end)
+    end
+
+    if hub.LocalPlayer.Character then
+        task.spawn(onCharacterAdded, hub.LocalPlayer.Character)
+    end
+    hub.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+    local function tryApplyAnims()
+        if animationsEnabled and hub.LocalPlayer.Character then
+            applyAnimations(hub.LocalPlayer.Character)
+        end
+    end
+
+    -- Standard mode
+    OM.Standard:Dropdown({
+        Title = "Select Bundle",
+        Values = animList,
+        Multi = false,
+        Value = "Rthro",
+        Flag = "SelectedAnimFlag",
+        Callback = function(v)
+            currentBundle = v
+            tryApplyAnims()
+        end
+    })
+
+    OM.Standard:Toggle({
+        Title = "Enable Animations (Standard)",
+        Value = false,
+        Flag = "AnimToggle",
+        Callback = function(v)
+            animationsEnabled = v
+            hub.HybridMode = false
+            tryApplyAnims()
+            if not v then
+                hub:Notify("Info", "Standard animations disabled", "info")
+            end
+        end
+    })
+
+    -- Hybrid mode
+    OM.Hybrid:Toggle({
+        Title = "Use Hybrid Mode",
+        Value = false,
+        Flag = "HybridEnabled",
+        Callback = function(v)
+            hub.HybridMode = v
+            animationsEnabled = v
+            tryApplyAnims()
+        end
+    })
+
+    local types = {"Idle", "Walk", "Run", "Jump", "Fall", "Climb", "Swim"}
+    for _, t in ipairs(types) do
+        OM.Hybrid:Dropdown({
+            Title = "Hybrid " .. t,
+            Values = animList,
+            Multi = false,
+            Value = "Rthro",
+            Flag = "Hybrid" .. t,
+            Callback = function(v)
+                hub["H_" .. t] = v
+                task.delay(0.1, tryApplyAnims)
+            end
+        })
+    end
+
+    -- Build Manager (in its own section)
+    OM["Build Manager"]:Divider()
+
+    local myBuilds = {}
+    local buildFile = "JustAHub_HybridBuilds.json"
+    local HttpService = game:GetService("HttpService")
+
+    local function loadBuildsFromFile()
+        if isfile and isfile(buildFile) then
+            local success, data = pcall(function()
+                return HttpService:JSONDecode(readfile(buildFile))
+            end)
+            if success and type(data) == "table" then
+                myBuilds = data
+            end
+        end
+    end
+
+    local function saveBuildsToFile()
+        if writefile then
+            writefile(buildFile, HttpService:JSONEncode(myBuilds))
+        end
+    end
+
+    local function refreshBuildList()
+        local names = {}
+        for name in pairs(myBuilds) do
+            table.insert(names, name)
+        end
+        table.sort(names)
+        buildDropdown:Refresh(names)
+    end
+
+    task.spawn(function()
+        loadBuildsFromFile()
+        task.delay(0.5, refreshBuildList)
+    end)
+
+    local buildNameInput = ""
+
+    OM["Build Manager"]:Input({
+        Title = "Build Name",
+        Placeholder = "Enter name...",
+        Callback = function(v)
+            buildNameInput = v
+        end
+    })
+
+    OM["Build Manager"]:Button({
+        Title = "Save Build",
+        Icon = "save",
+        Callback = function()
+            if buildNameInput == "" then
+                hub:Notify("Error", "Enter a build name first", "alert-circle")
+                return
+            end
+
+            local current = {
+                Idle  = hub.H_Idle  or "Rthro",
+                Walk  = hub.H_Walk  or "Rthro",
+                Run   = hub.H_Run   or "Rthro",
+                Jump  = hub.H_Jump  or "Rthro",
+                Fall  = hub.H_Fall  or "Rthro",
+                Climb = hub.H_Climb or "Rthro",
+                Swim  = hub.H_Swim  or "Rthro"
+            }
+
+            myBuilds[buildNameInput] = current
+            saveBuildsToFile()
+            refreshBuildList()
+
+            hub:Notify("Success", "Build '" .. buildNameInput .. "' saved!", "save")
+            buildNameInput = ""
+        end
+    })
+
+    local buildDropdown = OM["Build Manager"]:Dropdown({
+        Title = "Saved Builds",
+        Values = {},
+        Multi = false,
+        Value = "",
+        Flag = "SelectedBuild",
+        Callback = function(selected)
+            if myBuilds[selected] then
+                local build = myBuilds[selected]
+
+                hub.H_Idle  = build.Idle
+                hub.H_Walk  = build.Walk
+                hub.H_Run   = build.Run
+                hub.H_Jump  = build.Jump
+                hub.H_Fall  = build.Fall
+                hub.H_Climb = build.Climb
+                hub.H_Swim  = build.Swim
+
+                hub.HybridMode = true
+                hub.Win.Flags["HybridEnabled"] = true
+
+                hub.Win.Flags["HybridIdle"]  = build.Idle
+                hub.Win.Flags["HybridWalk"]  = build.Walk
+                hub.Win.Flags["HybridRun"]   = build.Run
+                hub.Win.Flags["HybridJump"]  = build.Jump
+                hub.Win.Flags["HybridFall"]  = build.Fall
+                hub.Win.Flags["HybridClimb"] = build.Climb
+                hub.Win.Flags["HybridSwim"]  = build.Swim
+
+                tryApplyAnims()
+
+                hub:Notify("Loaded", "Build '" .. selected .. "' loaded", "check")
+            end
+        end
+    })
+
+    OM["Build Manager"]:Button({
+        Title = "Copy Build Code",
+        Icon = "copy",
+        Callback = function()
+            local parts = {}
+            local order = {"Idle", "Walk", "Run", "Jump", "Fall", "Climb", "Swim"}
+
+            for _, t in ipairs(order) do
+                local name = hub["H_" .. t] or "Rthro"
+                local idx = table.find(animList, name) or 23
+                table.insert(parts, tostring(idx))
+            end
+
+            local code = table.concat(parts, "-")
+            setclipboard(code)
+            hub:Notify("Copied", "Build code: " .. code, "clipboard")
+        end
+    })
+
+    OM["Build Manager"]:Input({
+        Title = "Paste Sharing Code",
+        Placeholder = "Example: 5-12-8-15-3-27-19",
+        Callback = function(code)
+            if not code or code == "" then return end
+
+            local nums = string.split(code, "-")
+            if #nums ~= 7 then
+                hub:Notify("Error", "Code must have 7 numbers", "x")
+                return
+            end
+
+            local order = {"Idle", "Walk", "Run", "Jump", "Fall", "Climb", "Swim"}
+
+            for i, numStr in ipairs(nums) do
+                local idx = tonumber(numStr)
+                if idx and idx >= 1 and idx <= #animList then
+                    local name = animList[idx]
+                    hub["H_" .. order[i]] = name
+                    hub.Win.Flags["Hybrid" .. order[i]] = name
+                end
+            end
+
+            hub.HybridMode = true
+            hub.Win.Flags["HybridEnabled"] = true
+            tryApplyAnims()
+
+            hub:Notify("Success", "Code applied – Hybrid mode enabled", "check")
+        end
+    })
+
+    -- New 4th section: Emotes & Extra
+    OM["Emotes & Extra"]:Button({
+        Title = "Load Emotes GUI",
+        Icon = "smile",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))()
+            hub:Notify("Loaded", "Emotes GUI executed", "check", 4)
+        end
+    })
+
+    -- Optional: small text or divider if you want
+    OM["Emotes & Extra"]:Paragraph({
+        Title = "Extra Scripts",
+        Desc = "Click the button above to load the Emotes GUI from external source."
+    })
+end
