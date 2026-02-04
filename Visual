@@ -1,0 +1,317 @@
+-- visual.lua
+
+return function(Win, hub)
+    -- Visual features (ESP, Fullbright, No Fog, Zoom, FreeCam)
+
+    local M = hub.Win:FindTab("Home"):FindMultiSection("Features")
+
+    -- ESP
+    local espEnabled = false
+    local espObjects = {}
+    local espConnections = {}
+
+    local function createESP(player)
+        if player == hub.LocalPlayer or not player.Character then return end
+        local root = player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESP_" .. player.Name
+        billboard.Adornee = root
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = root
+
+        local frame = Instance.new("Frame", billboard)
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(139, 92, 246)
+        frame.BackgroundTransparency = 0.7
+        frame.BorderSizePixel = 0
+
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+        local stroke = Instance.new("UIStroke", frame)
+        stroke.Color = Color3.fromRGB(167, 139, 250)
+        stroke.Thickness = 1.5
+        stroke.Transparency = 0.3
+
+        local nameLabel = Instance.new("TextLabel", frame)
+        nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.Name
+        nameLabel.TextColor3 = Color3.new(1,1,1)
+        nameLabel.TextScaled = true
+        nameLabel.Font = Enum.Font.GothamBold
+
+        local distLabel = Instance.new("TextLabel", frame)
+        distLabel.Size = UDim2.new(1, 0, 0.4, 0)
+        distLabel.Position = UDim2.new(0, 0, 0.55, 0)
+        distLabel.BackgroundTransparency = 1
+        distLabel.TextColor3 = Color3.fromRGB(200,200,200)
+        distLabel.TextScaled = true
+        distLabel.Font = Enum.Font.Gotham
+
+        local box = Instance.new("BoxHandleAdornment", player.Character)
+        box.Name = "ESP_Box_" .. player.Name
+        box.Adornee = player.Character
+        box.Size = player.Character:GetExtentsSize()
+        box.Color3 = Color3.fromRGB(139, 92, 246)
+        box.Transparency = 0.7
+        box.AlwaysOnTop = true
+        box.ZIndex = 1
+
+        espObjects[player] = {billboard, box, distLabel}
+
+        local conn
+        conn = game:GetService("RunService").Heartbeat:Connect(function()
+            if not espEnabled or not player.Character or not hub.LocalPlayer.Character then return end
+            local myRoot = hub.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if myRoot and root then
+                local dist = (myRoot.Position - root.Position).Magnitude
+                distLabel.Text = math.floor(dist) .. " studs"
+            end
+        end)
+
+        table.insert(espConnections, conn)
+    end
+
+    local function removeESP(player)
+        if espObjects[player] then
+            for _, obj in pairs(espObjects[player]) do
+                if obj then obj:Destroy() end
+            end
+            espObjects[player] = nil
+        end
+    end
+
+    local function enableESP()
+        espEnabled = true
+        for _, player in Players:GetPlayers() do
+            if player ~= hub.LocalPlayer then
+                task.spawn(createESP, player)
+            end
+        end
+
+        table.insert(espConnections, Players.PlayerAdded:Connect(function(plr)
+            plr.CharacterAdded:Connect(function()
+                task.wait(0.5)
+                if espEnabled then createESP(plr) end
+            end)
+        end))
+
+        for _, player in Players:GetPlayers() do
+            if player ~= hub.LocalPlayer and player.Character then
+                task.spawn(createESP, player)
+            end
+        end
+    end
+
+    local function disableESP()
+        espEnabled = false
+        for _, player in Players:GetPlayers() do
+            removeESP(player)
+        end
+        for _, conn in pairs(espConnections) do
+            conn:Disconnect()
+        end
+        espConnections = {}
+    end
+
+    M.Visual:Toggle({
+        Title = "Enable ESP",
+        Value = false,
+        Flag = "ESPEnabled",
+        Callback = function(v)
+            if v then enableESP() else disableESP() end
+        end
+    })
+
+    -- Full Bright & No Fog
+    local lightingState = {saved = false}
+
+    local function saveLighting()
+        if not lightingState.saved then
+            lightingState = {
+                FogEnd = Lighting.FogEnd,
+                FogStart = Lighting.FogStart,
+                Brightness = Lighting.Brightness,
+                Ambient = Lighting.Ambient,
+                OutdoorAmbient = Lighting.OutdoorAmbient,
+                ClockTime = Lighting.ClockTime,
+                saved = true
+            }
+        end
+    end
+
+    M.Visual:Toggle({
+        Title = "Full Bright",
+        Value = false,
+        Flag = "FullBright",
+        Callback = function(v)
+            if v then
+                saveLighting()
+                Lighting.Brightness = 2
+                Lighting.Ambient = Color3.new(1,1,1)
+                Lighting.OutdoorAmbient = Color3.new(1,1,1)
+                Lighting.ClockTime = 14
+                for _, effect in Lighting:GetDescendants() do
+                    if effect:IsA("BloomEffect") or effect:IsA("BlurEffect") or
+                       effect:IsA("ColorCorrectionEffect") or effect:IsA("SunRaysEffect") then
+                        effect.Enabled = false
+                    end
+                end
+            else
+                if lightingState.saved then
+                    Lighting.Brightness = lightingState.Brightness
+                    Lighting.Ambient = lightingState.Ambient
+                    Lighting.OutdoorAmbient = lightingState.OutdoorAmbient
+                    Lighting.ClockTime = lightingState.ClockTime
+                end
+            end
+        end
+    })
+
+    M.Visual:Toggle({
+        Title = "No Fog",
+        Value = false,
+        Flag = "NoFog",
+        Callback = function(v)
+            if v then
+                saveLighting()
+                Lighting.FogEnd = math.huge
+                Lighting.FogStart = math.huge
+                for _, atm in Lighting:GetDescendants() do
+                    if atm:IsA("Atmosphere") then
+                        atm.Density = 0
+                        atm.Haze = 0
+                    end
+                end
+            else
+                if lightingState.saved then
+                    Lighting.FogEnd = lightingState.FogEnd
+                    Lighting.FogStart = lightingState.FogStart
+                end
+            end
+        end
+    })
+
+    -- Max Zoom & Third Person
+    hub.MaxZoom = LocalPlayer.CameraMaxZoomDistance
+
+    M.Visual:Slider({
+        Title = "Max Zoom Distance",
+        Value = {Min = 1, Max = 9999, Default = hub.MaxZoom},
+        Step = 1,
+        Flag = "MaxZoom",
+        Callback = function(v)
+            LocalPlayer.CameraMaxZoomDistance = v
+        end
+    })
+
+    M.Visual:Toggle({
+        Title = "Third Person",
+        Value = false,
+        Flag = "ThirdPerson",
+        Callback = function(v)
+            LocalPlayer.CameraMode = Enum.CameraMode.Classic
+            if v then
+                LocalPlayer.CameraMinZoomDistance = 0.5
+            end
+        end
+    })
+
+    -- FreeCam
+    local fcEnabled = false
+    local fcSpeed = 35
+    local fcYaw, fcPitch = 0, 0
+    local fcMoveTrack, fcRotTrack, fcMoveStart, fcOrigCF
+    local fcConnections = {}
+
+    M.Visual:Slider({
+        Title = "FreeCam Speed",
+        Value = {Min = 10, Max = 200, Default = 35},
+        Step = 5,
+        Flag = "FreeCamSpeed",
+        Callback = function(v) fcSpeed = v end
+    })
+
+    M.Visual:Toggle({
+        Title = "FreeCam",
+        Value = false,
+        Flag = "FreeCam",
+        Callback = function(v)
+            if v then
+                if fcEnabled then return end
+                fcEnabled = true
+
+                local cam = workspace.CurrentCamera
+                cam.CameraType = Enum.CameraType.Scriptable
+
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    fcOrigCF = char.HumanoidRootPart.CFrame
+                    char.HumanoidRootPart.Anchored = true
+                end
+
+                local cf = cam.CFrame
+                fcYaw = math.deg(math.atan2(-cf.LookVector.X, -cf.LookVector.Z))
+                fcPitch = math.deg(math.asin(cf.LookVector.Y))
+
+                table.insert(fcConnections, UserInput.TouchStarted:Connect(function(input, gp)
+                    if gp or not fcEnabled then return end
+                    local half = cam.ViewportSize.X / 2
+                    if input.Position.X > half then
+                        fcRotTrack = input
+                    else
+                        fcMoveTrack = input
+                        fcMoveStart = input.Position
+                    end
+                end))
+
+                table.insert(fcConnections, UserInput.TouchMoved:Connect(function(input, gp)
+                    if gp or not fcEnabled then return end
+                    if input == fcRotTrack then
+                        local delta = input.Delta
+                        fcYaw = fcYaw - delta.X * 0.32
+                        fcPitch = math.clamp(fcPitch - delta.Y * 0.32, -89, 89)
+                    end
+                end))
+
+                table.insert(fcConnections, UserInput.TouchEnded:Connect(function(input)
+                    if input == fcRotTrack then fcRotTrack = nil end
+                    if input == fcMoveTrack then fcMoveTrack = nil fcMoveStart = nil end
+                end))
+
+                table.insert(fcConnections, RunService.RenderStepped:Connect(function(dt)
+                    if not fcEnabled then return end
+                    local camCF = CFrame.new(cam.CFrame.Position) * CFrame.Angles(0, math.rad(fcYaw), 0) * CFrame.Angles(math.rad(fcPitch), 0, 0)
+
+                    if fcMoveTrack and fcMoveStart then
+                        local delta = (fcMoveTrack.Position - fcMoveStart) / 120
+                        if delta.Magnitude > 0.15 then
+                            local forward = -delta.Y
+                            local right = delta.X
+                            local move = (camCF.LookVector * forward + camCF.RightVector * right).Unit * fcSpeed * dt
+                            camCF = camCF + move
+                        end
+                    end
+
+                    cam.CFrame = camCF
+                end))
+            else
+                fcEnabled = false
+                workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.Anchored = false
+                end
+
+                for _, conn in ipairs(fcConnections) do conn:Disconnect() end
+                fcConnections = {}
+                fcMoveTrack, fcRotTrack, fcMoveStart, fcOrigCF = nil, nil, nil, nil
+            end
+        end
+    })
+end
