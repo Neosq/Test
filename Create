@@ -1,0 +1,291 @@
+-- create.lua
+-- Script generator tab (Movement scripts + Firing + ESP Parts)
+
+return function(Win, hub)
+    local CT = Win:Tab({
+        Title = "Create",
+        Icon = "code",
+        Visible = true
+    })
+
+    CT:Paragraph({
+        Title = "Script Generator",
+        Desc = "Create custom scripts for teleportation and firing"
+    })
+
+    CT:Divider()
+
+    local CM = CT:MultiSection({
+        Title = "Scripts",
+        Sections = {"Movement", "Firing", "ESP Parts"}
+    })
+
+    -- Movement scripts
+    CM.Movement:Button({
+        Title = "Create Tp Script",
+        Icon = "zap",
+        Callback = function()
+            local char = hub.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos = char.HumanoidRootPart.Position
+                local code = string.format(
+                    'game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(%.2f, %.2f, %.2f)',
+                    pos.X, pos.Y, pos.Z
+                )
+                setclipboard(code)
+                hub:Notify("Success", "Teleport script copied!", "clipboard-check")
+            else
+                hub:Notify("Error", "Character or root part not found", "x")
+            end
+        end
+    })
+
+    local tweenSpeed = 2
+
+    CM.Movement:Slider({
+        Title = "Tween Speed",
+        Value = {Min = 0.5, Max = 10, Default = 2},
+        Step = 0.5,
+        Flag = "TweenSpeed",
+        Callback = function(v) tweenSpeed = v end
+    })
+
+    CM.Movement:Button({
+        Title = "Create Tween Script",
+        Icon = "move",
+        Callback = function()
+            local char = hub.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos = char.HumanoidRootPart.Position
+                local code = string.format([[
+local TweenService = game:GetService("TweenService")
+local player = game.Players.LocalPlayer
+local char = player.Character
+local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+if hrp then
+    local tweenInfo = TweenInfo.new(%.1f, Enum.EasingStyle.Linear)
+    local goal = {CFrame = CFrame.new(%.2f, %.2f, %.2f)}
+    TweenService:Create(hrp, tweenInfo, goal):Play()
+end
+]], tweenSpeed, pos.X, pos.Y, pos.Z)
+
+                setclipboard(code)
+                hub:Notify("Success", "Tween script copied!", "clipboard-check")
+            else
+                hub:Notify("Error", "Character or root part not found", "x")
+            end
+        end
+    })
+
+    -- Firing section with dropdowns
+    CM.Firing:Divider()
+
+    local globalFireType = "ProximityPrompt"
+
+    CM.Firing:Dropdown({
+        Title = "Fire Type (Global)",
+        Values = {"ProximityPrompt", "ClickDetector", "TouchInterest"},
+        Multi = false,
+        Value = "ProximityPrompt",
+        Flag = "GlobalFireType",
+        Callback = function(v)
+            globalFireType = v
+        end
+    })
+
+    CM.Firing:Button({
+        Title = "Fire Selected Type (Global)",
+        Icon = "radio",
+        Callback = function()
+            local code = ""
+
+            if globalFireType == "ProximityPrompt" then
+                code = [[for _,v in pairs(workspace:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
+            elseif globalFireType == "ClickDetector" then
+                code = [[for _,v in pairs(workspace:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
+            elseif globalFireType == "TouchInterest" then
+                code = [[local c = game.Players.LocalPlayer.Character if c and c:FindFirstChild("HumanoidRootPart") then for _,v in pairs(workspace:GetDescendants()) do if v:IsA("BasePart") and v:FindFirstChild("TouchInterest") then firetouchinterest(c.HumanoidRootPart, v, 0) firetouchinterest(c.HumanoidRootPart, v, 1) end end end]]
+            end
+
+            if code ~= "" then
+                setclipboard(code)
+                hub:Notify("Success", globalFireType .. " fire script copied (global)", "clipboard-check")
+            end
+        end
+    })
+
+    CM.Firing:Divider()
+
+    local partName = ""
+    local allowTeleport = false
+    local partFireType = "ProximityPrompt"
+
+    CM.Firing:Input({
+        Title = "Part Name (In Part Fire)",
+        Value = "",
+        Placeholder = "Enter part name",
+        Flag = "PartName",
+        Callback = function(v) partName = v end
+    })
+
+    CM.Firing:Toggle({
+        Title = "Teleport to Part Before Fire",
+        Value = false,
+        Flag = "AllowTeleport",
+        Callback = function(v) allowTeleport = v end
+    })
+
+    CM.Firing:Dropdown({
+        Title = "Fire Type (In Part)",
+        Values = {"ProximityPrompt", "ClickDetector", "TouchInterest"},
+        Multi = false,
+        Value = "ProximityPrompt",
+        Flag = "PartFireType",
+        Callback = function(v)
+            partFireType = v
+        end
+    })
+
+    CM.Firing:Button({
+        Title = "Fire Selected Type (In Part)",
+        Icon = "target",
+        Callback = function()
+            if partName == "" then
+                hub:Notify("Error", "Enter part name first", "x")
+                return
+            end
+
+            local tpLine = allowTeleport and [[
+    local c = game.Players.LocalPlayer.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        c.HumanoidRootPart.CFrame = p.CFrame + Vector3.new(0, 3, 0)
+    end
+]] or ""
+
+            local fireLine = ""
+
+            if partFireType == "ProximityPrompt" then
+                fireLine = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
+            elseif partFireType == "ClickDetector" then
+                fireLine = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
+            elseif partFireType == "TouchInterest" then
+                fireLine = [[
+    local c = game.Players.LocalPlayer.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        for _,v in pairs(p:GetDescendants()) do
+            if v:IsA("BasePart") and v:FindFirstChild("TouchInterest") then
+                firetouchinterest(c.HumanoidRootPart, v, 0)
+                firetouchinterest(c.HumanoidRootPart, v, 1)
+            end
+        end
+    end]]
+            end
+
+            local code = string.format([[
+local p = workspace:FindFirstChild("%s", true)
+if p then%s
+    %s
+end
+]], partName, tpLine, fireLine)
+
+            setclipboard(code)
+            hub:Notify("Success", partFireType .. " fire script (in part) copied", "clipboard-check")
+        end
+    })
+
+    -- ESP Parts
+    local espPartName = ""
+    local espPartColor = Color3.fromRGB(255, 0, 0)
+    local espPartEnabled = false
+    local espPartHighlights = {}
+
+    CM["ESP Parts"]:Input({
+        Title = "Part/Model Name",
+        Value = "",
+        Placeholder = "Enter name",
+        Flag = "ESPPartName",
+        Callback = function(v) espPartName = v end
+    })
+
+    CM["ESP Parts"]:Colorpicker({
+        Title = "ESP Color",
+        Value = espPartColor,
+        Flag = "ESPPartColor",
+        Callback = function(v) espPartColor = v end
+    })
+
+    CM["ESP Parts"]:Toggle({
+        Title = "Enable ESP",
+        Value = false,
+        Flag = "ESPPartEnabled",
+        Callback = function(v)
+            espPartEnabled = v
+            if v then
+                if espPartName == "" then
+                    hub:Notify("Error", "Enter part/model name first", "x")
+                    return
+                end
+
+                espPartHighlights = {}
+                for _, obj in workspace:GetDescendants() do
+                    if (obj:IsA("BasePart") or obj:IsA("Model")) and obj.Name == espPartName then
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "ESPPartHighlight"
+                        hl.Adornee = obj
+                        hl.FillColor = espPartColor
+                        hl.OutlineColor = espPartColor
+                        hl.FillTransparency = 0.5
+                        hl.OutlineTransparency = 0
+                        hl.Parent = obj
+                        table.insert(espPartHighlights, hl)
+                    end
+                end
+
+                hub:Notify("Success", "ESP enabled for: " .. espPartName .. " (" .. #espPartHighlights .. " objects)", "check")
+            else
+                for _, hl in pairs(espPartHighlights) do
+                    pcall(function() hl:Destroy() end)
+                end
+                espPartHighlights = {}
+                hub:Notify("Info", "ESP for parts disabled", "info")
+            end
+        end
+    })
+
+    CM["ESP Parts"]:Button({
+        Title = "Delete ESP for this Part",
+        Icon = "trash",
+        Callback = function()
+            if espPartName == "" then
+                hub:Notify("Error", "Enter part name first", "x")
+                return
+            end
+
+            local count = 0
+            for i = #espPartHighlights, 1, -1 do
+                local hl = espPartHighlights[i]
+                if hl and hl.Adornee and hl.Adornee.Name == espPartName then
+                    pcall(function() hl:Destroy() end)
+                    table.remove(espPartHighlights, i)
+                    count += 1
+                end
+            end
+
+            hub:Notify("Success", "Removed ESP for " .. espPartName .. " (" .. count .. " objects)", "check")
+        end
+    })
+
+    CM["ESP Parts"]:Button({
+        Title = "Delete All Part ESP",
+        Icon = "trash-2",
+        Callback = function()
+            for _, hl in pairs(espPartHighlights) do
+                pcall(function() hl:Destroy() end)
+            end
+            espPartHighlights = {}
+            espPartEnabled = false
+            hub:Notify("Success", "All part ESP removed", "check")
+        end
+    })
+end
