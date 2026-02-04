@@ -1,0 +1,130 @@
+
+-- ══════════════════════════════════════════════════════════════════════════════
+--  Configuration
+-- ══════════════════════════════════════════════════════════════════════════════
+
+local UI_LIBRARY_URL = "https://raw.githubusercontent.com/orialdev/WindUI-Forked-by-orialdev/refs/heads/main/WindUI%20Forked"
+
+-- ══════════════════════════════════════════════════════════════════════════════
+--  Load UI Library
+-- ══════════════════════════════════════════════════════════════════════════════
+
+local success, WindUI = pcall(function()
+    return loadstring(game:HttpGet(UI_LIBRARY_URL, true))()
+end)
+
+if not success or not WindUI then
+    warn("[JustAHub Core] Failed to load WindUI library")
+    return nil
+end
+
+-- ══════════════════════════════════════════════════════════════════════════════
+--  Create Main Window
+-- ══════════════════════════════════════════════════════════════════════════════
+
+local Win = WindUI:CreateWindow({
+    Title    = "Just A Hub  |  Beta 1.0.01",
+    Icon     = "github",
+    Author   = "by Neos",
+    Folder   = "JustAHub",
+    Size     = UDim2.fromOffset(600, 480),
+    MinSize  = Vector2.new(560, 350),
+    Transparent = true,
+    Theme    = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    HideSearchBar = false,
+    User = {
+        Enabled   = true,
+        Anonymous = false
+    }
+})
+
+-- ══════════════════════════════════════════════════════════════════════════════
+--  Services & Locals
+-- ══════════════════════════════════════════════════════════════════════════════
+
+local Players      = game:GetService("Players")
+local RunService   = game:GetService("RunService")
+local UserInput    = game:GetService("UserInputService")
+local StarterGui   = game:GetService("StarterGui")
+local HttpService  = game:GetService("HttpService")
+local CoreGui      = game:GetService("CoreGui")
+local Lighting     = game:GetService("Lighting")
+
+local LocalPlayer  = Players.LocalPlayer
+
+_G.JustAHub = _G.JustAHub or {}
+
+local hub = _G.JustAHub
+
+hub.Win           = Win
+hub.LocalPlayer   = LocalPlayer
+hub.Players       = Players
+hub.RunService    = RunService
+hub.UserInput     = UserInput
+hub.StarterGui    = StarterGui
+hub.CoreGui       = CoreGui
+hub.Lighting      = Lighting
+
+hub.Flags = hub.Flags or {}
+hub.Flags.FlyEnabled       = false
+hub.Flags.WalkSpeedEnabled = false
+hub.Flags.JumpPowerEnabled = false
+hub.Flags.InfiniteJump     = false
+hub.Flags.ESPEnabled       = false
+hub.Flags.FullBright       = false
+hub.Flags.NoFog            = false
+hub.Flags.FreeCam          = false
+hub.Flags.EnableInventory  = false
+hub.Flags.ShiftLock        = false
+hub.Flags.TpTool           = false
+
+hub.FlySpeed      = 1
+hub.WalkSpeed     = 16
+hub.JumpPower     = 50
+hub.OriginalWalkSpeed = 16
+hub.MaxZoom       = LocalPlayer.CameraMaxZoomDistance or 400
+
+hub.SelectedAnim   = "Rthro"
+hub.HybridMode     = false
+hub.H_Idle         = "Rthro"
+hub.H_Walk         = "Rthro"
+hub.H_Run          = "Rthro"
+hub.H_Jump         = "Rthro"
+hub.H_Fall         = "Rthro"
+hub.H_Climb        = "Rthro"
+hub.H_Swim         = "Rthro"
+
+function hub:Notify(title, content, icon, duration)
+    if Win and Win.Notify then
+        Win:Notify({
+            Title   = title or "Just A Hub",
+            Content = content or "",
+            Icon    = icon or "info",
+            Duration = duration or 4
+        })
+    else
+        warn("[JustAHub] " .. (title or "") .. ": " .. (content or ""))
+    end
+end
+
+function hub:Error(msg)
+    hub:Notify("Error", msg, "alert-circle", 6)
+end
+
+hub.OnCharacterAdded = Instance.new("BindableEvent")
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.15)
+    hub.OnCharacterAdded:Fire(char)
+end)
+
+if LocalPlayer.Character then
+    task.spawn(function()
+        task.wait(0.15)
+        hub.OnCharacterAdded:Fire(LocalPlayer.Character)
+    end)
+end
+
+return Win, hub
