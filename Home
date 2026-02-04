@@ -1,0 +1,261 @@
+-- home.lua
+
+return function(Win, hub)
+    -- ========================================================================
+    --  HOME TAB
+    -- ========================================================================
+
+    local HomeTab = Win:Tab({
+        Title = "Home",
+        Icon = "home",
+        Visible = true
+    })
+
+    -- Clock button (live updating)
+    local function pad(n) return n < 10 and "0" .. n or tostring(n) end
+    local function getTime()
+        local t = DateTime.now():ToLocalTime()
+        return string.format("%s:%s:%s • %s/%s/%s", pad(t.Hour), pad(t.Minute), pad(t.Second), pad(t.Day), pad(t.Month), t.Year)
+    end
+
+    local clockBtn = HomeTab:Button({
+        Title = getTime(),
+        Icon = "clock",
+        Callback = function() end
+    })
+
+    task.spawn(function()
+        while task.wait(1) do
+            pcall(function()
+                clockBtn:SetTitle(getTime())
+            end)
+        end
+    end)
+
+    HomeTab:Divider()
+
+    -- ========================================================================
+    --  MAIN FEATURE SECTIONS
+    -- ========================================================================
+
+    local M = HomeTab:MultiSection({
+        Title = "Features",
+        Sections = {"Player", "Visual", "Other"}
+    })
+
+    -- ==============================================
+    --  PLAYER SECTION
+    -- ==============================================
+
+    -- Fly
+    M.Player:Slider({
+        Title = "Fly Speed",
+        Value = {Min = 1, Max = 100, Default = 1},
+        Step = 1,
+        Flag = "FlySpeed",
+        Callback = function(v) hub.FlySpeed = v end
+    })
+
+    local flyConnection
+    local function toggleFly(enable)
+        if enable then
+            hub.Flags.FlyEnabled = true
+            -- Your full fly logic here (from original actFly)
+            -- Example placeholder (replace with your actual fly code):
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                -- ... bodygyro, bodyvelocity, states, etc.
+                hub:Notify("Fly", "Enabled (speed: " .. hub.FlySpeed .. ")", "play")
+            end
+        else
+            hub.Flags.FlyEnabled = false
+            -- Cleanup (your deactFly logic)
+            hub:Notify("Fly", "Disabled", "stop-circle")
+        end
+    end
+
+    M.Player:Toggle({
+        Title = "Enable Fly",
+        Value = false,
+        Flag = "FlyEnabled",
+        Callback = toggleFly
+    })
+
+    -- Infinite Jump
+    local infJumpConn
+    M.Player:Toggle({
+        Title = "Infinite Jump",
+        Value = false,
+        Flag = "InfiniteJump",
+        Callback = function(v)
+            hub.Flags.InfiniteJump = v
+            if v then
+                infJumpConn = UserInput.JumpRequest:Connect(function()
+                    if hub.Flags.InfiniteJump and LocalPlayer.Character then
+                        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                    end
+                end)
+            else
+                if infJumpConn then infJumpConn:Disconnect() infJumpConn = nil end
+            end
+        end
+    })
+
+    -- WalkSpeed
+    M.Player:Slider({
+        Title = "Speed Value",
+        Value = {Min = 16, Max = 200, Default = 16},
+        Step = 1,
+        Flag = "WalkSpeed",
+        Callback = function(v) hub.WalkSpeed = v end
+    })
+
+    M.Player:Toggle({
+        Title = "Enable WalkSpeed",
+        Value = false,
+        Flag = "WalkSpeedEnabled",
+        Callback = function(v)
+            hub.Flags.WalkSpeedEnabled = v
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = v and hub.WalkSpeed or hub.OriginalWalkSpeed
+            end
+        end
+    })
+
+    -- JumpPower
+    M.Player:Slider({
+        Title = "Power Value",
+        Value = {Min = 50, Max = 300, Default = 50},
+        Step = 1,
+        Flag = "JumpPower",
+        Callback = function(v) hub.JumpPower = v end
+    })
+
+    M.Player:Toggle({
+        Title = "Enable JumpPower",
+        Value = false,
+        Flag = "JumpPowerEnabled",
+        Callback = function(v)
+            hub.Flags.JumpPowerEnabled = v
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                local hum = LocalPlayer.Character.Humanoid
+                hum.UseJumpPower = v
+                hum.JumpPower = v and hub.JumpPower or 50
+            end
+        end
+    })
+
+    -- Teleport features
+    M.Player:Divider()
+
+    local selectedPlayer = ""
+    local function updatePlayerList()
+        local list = {}
+        for _, plr in Players:GetPlayers() do
+            if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+        end
+        return list
+    end
+
+    M.Player:Dropdown({
+        Title = "Select Player",
+        Values = updatePlayerList(),
+        Multi = false,
+        Value = "",
+        Flag = "SelectedPlayer",
+        Callback = function(v) selectedPlayer = v end
+    })
+
+    M.Player:Button({
+        Title = "Teleport to Player",
+        Icon = "map-pin",
+        Callback = function()
+            if selectedPlayer == "" then
+                hub:Notify("Teleport", "No player selected", "alert-circle")
+                return
+            end
+            local target = Players:FindFirstChild(selectedPlayer)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    hub:Notify("Success", "Teleported to " .. selectedPlayer, "check")
+                else
+                    hub:Notify("Error", "Your character not found", "x")
+                end
+            else
+                hub:Notify("Error", "Player or character not found", "x")
+            end
+        end
+    })
+
+    M.Player:Button({
+        Title = "Copy Current Position",
+        Icon = "copy",
+        Callback = function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local pos = LocalPlayer.Character.HumanoidRootPart.Position
+                setclipboard(string.format("%.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z))
+                hub:Notify("Copied", "Position copied to clipboard", "clipboard-check")
+            else
+                hub:Notify("Error", "No character found", "x")
+            end
+        end
+    })
+
+    M.Player:Input({
+        Title = "Teleport to Coords",
+        Value = "",
+        Placeholder = "X, Y, Z",
+        Flag = "TeleportCoords",
+        Callback = function(input)
+            if input == "" then return end
+            local x, y, z = input:match("([%d%.%-]+)%s*,%s*([%d%.%-]+)%s*,%s*([%d%.%-]+)")
+            if x and y and z then
+                x, y, z = tonumber(x), tonumber(y), tonumber(z)
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
+                    hub:Notify("Success", "Teleported to coordinates", "check")
+                end
+            else
+                hub:Notify("Error", "Invalid format. Use: X, Y, Z", "x")
+            end
+        end
+    })
+
+    -- ==============================================
+    --  VISUAL SECTION (only the players counter here)
+    -- ==============================================
+
+    local function getPlayerCount() return #Players:GetPlayers() end
+
+    local playersBtn = M.Visual:Button({
+        Title = "Players: " .. getPlayerCount(),
+        Icon = "users",
+        Callback = function() end
+    })
+
+    task.spawn(function()
+        while task.wait(0.5) do
+            pcall(function()
+                playersBtn:SetTitle("Players: " .. getPlayerCount())
+            end)
+        end
+    end)
+
+    -- ==============================================
+    --  OTHER SECTION (only inventory here)
+    -- ==============================================
+
+    M.Other:Toggle({
+        Title = "Enable Inventory",
+        Value = false,
+        Flag = "EnableInventory",
+        Callback = function(v)
+            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, v)
+            hub.Flags.EnableInventory = v
+        end
+    }
+
+    hub:Notify("Home", "Player features loaded", "home", 3)
+end
