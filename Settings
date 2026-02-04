@@ -1,0 +1,222 @@
+ttings", 3)
+end
+-- settings.lua
+-- Settings tab – Configs, Theme, Console, Credits
+
+return function(Win, hub)
+    local ST = Win:Tab({
+        Title = "Settings",
+        Icon = "settings",
+        Visible = true
+    })
+
+    local CfS = ST:Section({
+        Title = "Configuration",
+        Opened = true
+    })
+
+    local cfgName = "default"
+    local cfgDropdown
+
+    CfS:Input({
+        Title = "Config Name",
+        Value = cfgName,
+        Placeholder = "Enter config name",
+        Flag = "ConfigName",
+        Callback = function(v)
+            cfgName = v
+        end
+    })
+
+    cfgDropdown = CfS:Dropdown({
+        Title = "Select Existing Config",
+        Values = Win.ConfigManager:AllConfigs(),
+        Multi = false,
+        Value = "",
+        Flag = "SelectConfig",
+        Callback = function(v)
+            cfgName = v
+        end
+    })
+
+    CfS:Toggle({
+        Title = "Auto Load Config",
+        Value = false,
+        Flag = "AutoLoadConfig",
+        Callback = function(v)
+            if Win.CurrentConfig then
+                Win.CurrentConfig:SetAutoLoad(v)
+            end
+        end
+    })
+
+    CfS:Button({
+        Title = "Save Config",
+        Icon = "save",
+        Callback = function()
+            local exists = false
+            for _, c in pairs(Win.ConfigManager:AllConfigs()) do
+                if c == cfgName then exists = true break end
+            end
+
+            if exists then
+                Win:Dialog({
+                    Title = "Warning",
+                    Content = 'Config "' .. cfgName .. '" already exists.\n\nOverwrite?',
+                    Buttons = {
+                        {Title = "Yes", Callback = function()
+                            Win.CurrentConfig = Win.ConfigManager:Config(cfgName)
+                            if Win.CurrentConfig:Save() then
+                                hub:Notify("Success", "Config saved!", "check")
+                                cfgDropdown:Refresh(Win.ConfigManager:AllConfigs())
+                            else
+                                hub:Notify("Error", "Failed to save config", "x")
+                            end
+                        end},
+                        {Title = "No"}
+                    }
+                })
+            else
+                Win.CurrentConfig = Win.ConfigManager:Config(cfgName)
+                if Win.CurrentConfig:Save() then
+                    hub:Notify("Success", "Config saved!", "check")
+                    cfgDropdown:Refresh(Win.ConfigManager:AllConfigs())
+                else
+                    hub:Notify("Error", "Failed to save config", "x")
+                end
+            end
+        end
+    })
+
+    CfS:Button({
+        Title = "Load Config",
+        Icon = "folder-open",
+        Callback = function()
+            Win.CurrentConfig = Win.ConfigManager:Config(cfgName)
+            if Win.CurrentConfig:Load() then
+                hub:Notify("Success", "Config loaded!", "check")
+            else
+                hub:Notify("Error", "Config not found", "x")
+            end
+        end
+    })
+
+    CfS:Button({
+        Title = "Delete Config",
+        Icon = "trash-2",
+        Callback = function()
+            Win.CurrentConfig = Win.ConfigManager:Config(cfgName)
+            if Win.CurrentConfig:Delete() then
+                hub:Notify("Success", "Config deleted!", "check")
+                cfgDropdown:Refresh(Win.ConfigManager:AllConfigs())
+            else
+                hub:Notify("Error", "Failed to delete config", "x")
+            end
+        end
+    })
+
+    CfS:Divider()
+
+    CfS:Toggle({
+        Title = "Don't Show Config Warning",
+        Value = false,
+        Flag = "DontShowWarning",
+        Callback = function(v)
+            -- You can store this in hub.Flags if needed later
+        end
+    })
+
+    -- Theme
+    ST:Divider()
+
+    local ThS = ST:Section({
+        Title = "Theme",
+        Opened = true
+    })
+
+    ThS:Dropdown({
+        Title = "Select Theme",
+        Values = {"Dark", "Light", "Midnight", "MonokaiPro"},
+        Multi = false,
+        Value = "Dark",
+        Flag = "Theme",
+        Callback = function(v)
+            Win:SetTheme(v)
+        end
+    })
+
+    -- Console
+    ST:Divider()
+
+    local CoS = ST:Section({
+        Title = "Console",
+        Opened = true
+    })
+
+    CoS:Button({
+        Title = "Open Console (F9)",
+        Icon = "terminal",
+        Callback = function()
+            game:GetService("StarterGui"):SetCore("DevConsoleVisible", true)
+        end
+    })
+
+    CoS:Toggle({
+        Title = "Console Icon",
+        Value = false,
+        Flag = "ConsoleIcon",
+        Callback = function(v)
+            if v then
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Neosq/Console/refs/heads/main/Console.txt"))()
+            else
+                _G.ConsoleButtonLoaded = nil
+                if hub.CoreGui:FindFirstChild("ConsoleGui") then
+                    hub.CoreGui.ConsoleGui:Destroy()
+                end
+                if hub.LocalPlayer.PlayerGui:FindFirstChild("ConsoleGui") then
+                    hub.LocalPlayer.PlayerGui.ConsoleGui:Destroy()
+                end
+            end
+        end
+    })
+
+    -- Credits tab
+    local CrT = Win:Tab({
+        Title = "Credits",
+        Icon = "info",
+        Visible = true
+    })
+
+    CrT:Paragraph({
+        Title = "Just A Hub",
+        Desc = "Created by Neos\nVersion: Beta 1.0.01\n\nThanks for using Just A Hub!"
+    })
+
+    CrT:Button({
+        Title = "Telegram: @JustNeos",
+        Icon = "send",
+        Callback = function()
+            setclipboard("https://t.me/JustNeos")
+            hub:Notify("Copied!", "Telegram link copied", "clipboard-check")
+        end
+    })
+
+    CrT:Divider()
+
+    CrT:Paragraph({
+        Title = "WindUI Forked",
+        Desc = "UI Library by orialdev\nFork of the original WindUI"
+    })
+
+    CrT:Button({
+        Title = "Copy Discord Server",
+        Icon = "message-circle",
+        Callback = function()
+            setclipboard("https://discord.gg/yourdiscord")  -- ← change to real link if needed
+            hub:Notify("Copied!", "Discord link copied", "clipboard-check")
+        end
+    })
+
+    -- Final load message (can be here or in loader)
+    hub:Notify("Settings", "All settings & credits loaded", "settings", 3)
+end
