@@ -1,0 +1,78 @@
+-- other.lua
+-- Inventory, ShiftLock, TpTool
+
+return function(Win, hub)
+    local M = hub.Win:FindTab("Home"):FindMultiSection("Features")
+
+    -- Enable Backpack / Inventory visibility
+    M.Other:Toggle({
+        Title = "Enable Inventory",
+        Value = false,
+        Flag = "EnableInventory",
+        Callback = function(v)
+            game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, v)
+        end
+    })
+
+    -- ShiftLock toggle
+    M.Other:Divider()
+
+    M.Other:Toggle({
+        Title = "ShiftLock",
+        Value = false,
+        Flag = "ShiftLock",
+        Callback = function(v)
+            if v then
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Neosq/ShiftLock/refs/heads/main/ShiftLock.txt"))()
+            else
+                _G.ShiftLockLoaded = nil
+                if hub.CoreGui:FindFirstChild("ShiftlockGui") then
+                    hub.CoreGui.ShiftlockGui:Destroy()
+                end
+                if hub.LocalPlayer.PlayerGui:FindFirstChild("ShiftlockGui") then
+                    hub.LocalPlayer.PlayerGui.ShiftlockGui:Destroy()
+                end
+            end
+        end
+    })
+
+    -- TpTool (teleport tool)
+    M.Other:Divider()
+
+    M.Other:Toggle({
+        Title = "TpTool",
+        Value = false,
+        Flag = "TpTool",
+        Callback = function(v)
+            if v then
+                local tool = Instance.new("Tool")
+                tool.Name = "TpTool"
+                tool.RequiresHandle = false
+                tool.Parent = hub.LocalPlayer.Backpack
+
+                tool.Activated:Connect(function()
+                    local mouse = hub.LocalPlayer:GetMouse()
+                    if hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and mouse.Hit then
+                        hub.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+                    end
+                end)
+
+                local backpackVisible = game:GetService("StarterGui"):GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
+                if not backpackVisible then
+                    task.wait(0.5)
+                    hub:Notify("Info", "Inventory not visible. Enable in Other tab", "info", 4)
+                end
+            else
+                local backpack = hub.LocalPlayer.Backpack
+                local char = hub.LocalPlayer.Character
+
+                if backpack:FindFirstChild("TpTool") then
+                    backpack.TpTool:Destroy()
+                end
+                if char and char:FindFirstChild("TpTool") then
+                    char.TpTool:Destroy()
+                end
+            end
+        end
+    })
+end
