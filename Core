@@ -1,38 +1,135 @@
--- Core.lua (minimal debug version – replace your current one)
+-- core.lua
+-- Core module: Loads UI library, creates window, sets up shared state
 
-print("[Core] Starting execution")
+print("[Core] Module started")
 
 local UI_LIBRARY_URL = "https://raw.githubusercontent.com/orialdev/WindUI-Forked-by-orialdev/refs/heads/main/WindUI%20Forked"
 
-print("[Core] Fetching WindUI...")
-local WindUI = loadstring(game:HttpGet(UI_LIBRARY_URL, true))()
-if not WindUI then
-    warn("[Core] WindUI load failed!")
-    return nil
-end
-print("[Core] WindUI loaded OK")
+print("[Core] Fetching WindUI library...")
+local success, WindUI = pcall(function()
+    return loadstring(game:HttpGet(UI_LIBRARY_URL, true))()
+end)
 
-print("[Core] Creating minimal window...")
+if not success or not WindUI then
+    warn("[Core] WindUI failed to load: " .. tostring(WindUI))
+    return nil, nil
+end
+
+print("[Core] WindUI loaded successfully")
+
+print("[Core] Creating main window...")
 local Win = WindUI:CreateWindow({
-    Title = "Just A Hub (DEBUG)",
-    Size = UDim2.fromOffset(600, 480),
-    Theme = "Dark",
-    Resizable = true
+    Title     = "Just A Hub  |  Beta 1.0.01",
+    Icon      = "github",
+    Author    = "by Neos",
+    Folder    = "JustAHub",
+    Size      = UDim2.fromOffset(600, 480),
+    MinSize   = Vector2.new(560, 350),
+    Transparent = true,
+    Theme     = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    HideSearchBar = false,
+    User = {
+        Enabled   = true,
+        Anonymous = false
+    }
 })
+
+if not Win then
+    warn("[Core] CreateWindow returned nil – UI creation failed")
+    return nil, nil
+end
+
 print("[Core] Window created OK")
 
--- Minimal hub table
+-- Shared services
+local Players     = game:GetService("Players")
+local RunService  = game:GetService("RunService")
+local UserInput   = game:GetService("UserInputService")
+local StarterGui  = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
+local CoreGui     = game:GetService("CoreGui")
+local Lighting    = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Shared hub table (accessible in all modules as hub)
 local hub = {
-    Win = Win,
+    Win           = Win,
+    LocalPlayer   = LocalPlayer,
+    Players       = Players,
+    RunService    = RunService,
+    UserInput     = UserInput,
+    StarterGui    = StarterGui,
+    CoreGui       = CoreGui,
+    Lighting      = Lighting,
+    HttpService   = HttpService,
+    
+    -- Feature flags / values
+    Flags = {
+        FlyEnabled         = false,
+        WalkSpeedEnabled   = false,
+        JumpPowerEnabled   = false,
+        InfiniteJump       = false,
+        ESPEnabled         = false,
+        FullBright         = false,
+        NoFog              = false,
+        FreeCam            = false,
+        EnableInventory    = false,
+        ShiftLock          = false,
+        TpTool             = false
+    },
+    
+    FlySpeed      = 1,
+    WalkSpeed     = 16,
+    JumpPower     = 50,
+    OriginalWalkSpeed = 16,
+    MaxZoom       = LocalPlayer.CameraMaxZoomDistance or 400,
+    
+    -- Animation globals
+    SelectedAnim   = "Rthro",
+    HybridMode     = false,
+    H_Idle         = "Rthro",
+    H_Walk         = "Rthro",
+    H_Run          = "Rthro",
+    H_Jump         = "Rthro",
+    H_Fall         = "Rthro",
+    H_Climb        = "Rthro",
+    H_Swim         = "Rthro",
+    
+    -- Helper function: notify
     Notify = function(self, title, content, icon, duration)
-        Win:Notify({
-            Title = title or "Info",
-            Content = content or "",
-            Icon = icon or "info",
-            Duration = duration or 4
-        })
-    end
+        if self.Win and self.Win.Notify then
+            self.Win:Notify({
+                Title   = title or "Just A Hub",
+                Content = content or "",
+                Icon    = icon or "info",
+                Duration = duration or 4
+            })
+        else
+            warn("[Hub Notify] " .. (title or "") .. ": " .. (content or ""))
+        end
+    end,
+    
+    -- Character added event (BindableEvent for modules to connect to)
+    OnCharacterAdded = Instance.new("BindableEvent")
 }
 
-print("[Core] Hub ready - returning")
+-- Connect character added
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.15)
+    hub.OnCharacterAdded:Fire(char)
+end)
+
+if LocalPlayer.Character then
+    task.spawn(function()
+        task.wait(0.15)
+        hub.OnCharacterAdded:Fire(LocalPlayer.Character)
+    end)
+end
+
+print("[Core] Hub table ready")
+print("[Core] Module finished – returning Win and hub")
+
 return Win, hub
