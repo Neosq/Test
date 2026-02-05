@@ -1,10 +1,7 @@
 -- home.lua
+-- Home tab + Player features + basic visual/other toggles
 
 return function(Win, hub)
-    -- ========================================================================
-    --  HOME TAB
-    -- ========================================================================
-
     local HomeTab = Win:Tab({
         Title = "Home",
         Icon = "home",
@@ -34,20 +31,12 @@ return function(Win, hub)
 
     HomeTab:Divider()
 
-    -- ========================================================================
-    --  MAIN FEATURE SECTIONS
-    -- ========================================================================
-
     local M = HomeTab:MultiSection({
         Title = "Features",
         Sections = {"Player", "Visual", "Other"}
     })
 
-    -- ==============================================
-    --  PLAYER SECTION
-    -- ==============================================
-
-    -- Fly
+    -- Player section - Fly
     M.Player:Slider({
         Title = "Fly Speed",
         Value = {Min = 1, Max = 100, Default = 1},
@@ -56,21 +45,134 @@ return function(Win, hub)
         Callback = function(v) hub.FlySpeed = v end
     })
 
-    local flyConnection
-    local function toggleFly(enable)
-        if enable then
-            hub.Flags.FlyEnabled = true
-            -- Your full fly logic here (from original actFly)
-            -- Example placeholder (replace with your actual fly code):
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                -- ... bodygyro, bodyvelocity, states, etc.
-                hub:Notify("Fly", "Enabled (speed: " .. hub.FlySpeed .. ")", "play")
+    local fly = false
+    local tpwalk = false
+
+    local function actFly()
+        fly = true
+        for i = 1, hub.FlySpeed do
+            spawn(function()
+                local hb = hub.RunService.Heartbeat
+                tpwalk = true
+                local chr = hub.LocalPlayer.Character
+                local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                while tpwalk and hb:Wait() and chr and hum and hum.Parent do
+                    if hum.MoveDirection.Magnitude > 0 then
+                        chr:TranslateBy(hum.MoveDirection)
+                    end
+                end
+            end)
+        end
+
+        local char = hub.LocalPlayer.Character
+        if char and char:FindFirstChild("Animate") then
+            char.Animate.Disabled = true
+        end
+
+        local Hum = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("AnimationController")
+        if Hum then
+            for _, v in next, Hum:GetPlayingAnimationTracks() do
+                v:AdjustSpeed(0)
             end
-        else
-            hub.Flags.FlyEnabled = false
-            -- Cleanup (your deactFly logic)
-            hub:Notify("Fly", "Disabled", "stop-circle")
+        end
+
+        local states = {
+            Enum.HumanoidStateType.Climbing, Enum.HumanoidStateType.FallingDown,
+            Enum.HumanoidStateType.Flying, Enum.HumanoidStateType.Freefall,
+            Enum.HumanoidStateType.GettingUp, Enum.HumanoidStateType.Jumping,
+            Enum.HumanoidStateType.Landed, Enum.HumanoidStateType.Physics,
+            Enum.HumanoidStateType.PlatformStanding, Enum.HumanoidStateType.Ragdoll,
+            Enum.HumanoidStateType.Running, Enum.HumanoidStateType.RunningNoPhysics,
+            Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.StrafingNoPhysics,
+            Enum.HumanoidStateType.Swimming
+        }
+        if char and char:FindFirstChild("Humanoid") then
+            for _, st in pairs(states) do
+                char.Humanoid:SetStateEnabled(st, false)
+            end
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+        end
+
+        local tor = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+        if not tor then return end
+
+        local ct, lct, mxs, sp = {f=0,b=0,l=0,r=0}, {f=0,b=0,l=0,r=0}, 50, 0
+
+        local bg = Instance.new("BodyGyro", tor)
+        bg.P = 9e4
+        bg.maxTorque = Vector3.new(9e9,9e9,9e9)
+        bg.CFrame = tor.CFrame
+
+        local bv = Instance.new("BodyVelocity", tor)
+        bv.velocity = Vector3.new(0, 0.1, 0)
+        bv.maxForce = Vector3.new(9e9,9e9,9e9)
+
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = true
+        end
+
+        spawn(function()
+            while fly or (char and char:FindFirstChild("Humanoid") and char.Humanoid.Health == 0) do
+                wait()
+                if ct.l + ct.r ~= 0 or ct.f + ct.b ~= 0 then
+                    sp = sp + 0.5 + (sp / mxs)
+                    if sp > mxs then sp = mxs end
+                elseif sp ~= 0 then
+                    sp = sp - 1
+                    if sp < 0 then sp = 0 end
+                end
+
+                if ct.l + ct.r ~= 0 or ct.f + ct.b ~= 0 then
+                    bv.Velocity = (
+                        workspace.CurrentCamera.CFrame.lookVector * (ct.f + ct.b) +
+                        ((workspace.CurrentCamera.CFrame * CFrame.new(ct.l + ct.r, (ct.f + ct.b) * 0.2, 0).p) - workspace.CurrentCamera.CFrame.p)
+                    ) * sp
+                    lct = {f = ct.f, b = ct.b, l = ct.l, r = ct.r}
+                elseif sp ~= 0 then
+                    bv.Velocity = (
+                        workspace.CurrentCamera.CFrame.lookVector * (lct.f + lct.b) +
+                        ((workspace.CurrentCamera.CFrame * CFrame.new(lct.l + lct.r, (lct.f + lct.b) * 0.2, 0).p) - workspace.CurrentCamera.CFrame.p)
+                    ) * sp
+                else
+                    bv.Velocity = Vector3.new(0, 0, 0)
+                end
+
+                bg.CFrame = workspace.CurrentCamera.CFrame * CFrame.Angles(-math.rad((ct.f + ct.b) * 50 * sp / mxs), 0, 0)
+            end
+
+            ct = {f=0,b=0,l=0,r=0}
+            lct = {f=0,b=0,l=0,r=0}
+            sp = 0
+            if bg then bg:Destroy() end
+            if bv then bv:Destroy() end
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = false
+            end
+            if char and char:FindFirstChild("Animate") then
+                char.Animate.Disabled = false
+            end
+            tpwalk = false
+        end)
+    end
+
+    local function deactFly()
+        fly = false
+        local char = hub.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            local states = {
+                Enum.HumanoidStateType.Climbing, Enum.HumanoidStateType.FallingDown,
+                Enum.HumanoidStateType.Flying, Enum.HumanoidStateType.Freefall,
+                Enum.HumanoidStateType.GettingUp, Enum.HumanoidStateType.Jumping,
+                Enum.HumanoidStateType.Landed, Enum.HumanoidStateType.Physics,
+                Enum.HumanoidStateType.PlatformStanding, Enum.HumanoidStateType.Ragdoll,
+                Enum.HumanoidStateType.Running, Enum.HumanoidStateType.RunningNoPhysics,
+                Enum.HumanoidStateType.Seated, Enum.HumanoidStateType.StrafingNoPhysics,
+                Enum.HumanoidStateType.Swimming
+            }
+            for _, st in pairs(states) do
+                char.Humanoid:SetStateEnabled(st, true)
+            end
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         end
     end
 
@@ -78,37 +180,57 @@ return function(Win, hub)
         Title = "Enable Fly",
         Value = false,
         Flag = "FlyEnabled",
-        Callback = toggleFly
+        Callback = function(v)
+            if v then actFly() else deactFly() end
+        end
     })
 
+    hub.LocalPlayer.CharacterAdded:Connect(function()
+        deactFly()
+    end)
+
     -- Infinite Jump
-    local infJumpConn
+    M.Player:Divider()
+    local infJ = false
     M.Player:Toggle({
         Title = "Infinite Jump",
         Value = false,
         Flag = "InfiniteJump",
         Callback = function(v)
-            hub.Flags.InfiniteJump = v
+            infJ = v
             if v then
-                infJumpConn = UserInput.JumpRequest:Connect(function()
-                    if hub.Flags.InfiniteJump and LocalPlayer.Character then
-                        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                hub.UserInput.JumpRequest:Connect(function()
+                    if infJ and hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        hub.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                     end
                 end)
-            else
-                if infJumpConn then infJumpConn:Disconnect() infJumpConn = nil end
             end
         end
     })
 
     -- WalkSpeed
+    M.Player:Divider()
+    hub.LocalPlayer.CharacterAdded:Connect(function(c)
+        task.wait(0.5)
+        local h = c:FindFirstChild("Humanoid")
+        if h then hub.OriginalWalkSpeed = h.WalkSpeed end
+    end)
+
+    if hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("Humanoid") then
+        hub.OriginalWalkSpeed = hub.LocalPlayer.Character.Humanoid.WalkSpeed
+    end
+
     M.Player:Slider({
         Title = "Speed Value",
         Value = {Min = 16, Max = 200, Default = 16},
         Step = 1,
         Flag = "WalkSpeed",
-        Callback = function(v) hub.WalkSpeed = v end
+        Callback = function(v)
+            hub.WalkSpeed = v
+            if hub.Flags.WalkSpeedEnabled and hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                hub.LocalPlayer.Character.Humanoid.WalkSpeed = v
+            end
+        end
     })
 
     M.Player:Toggle({
@@ -117,19 +239,27 @@ return function(Win, hub)
         Flag = "WalkSpeedEnabled",
         Callback = function(v)
             hub.Flags.WalkSpeedEnabled = v
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid.WalkSpeed = v and hub.WalkSpeed or hub.OriginalWalkSpeed
+            if hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                hub.LocalPlayer.Character.Humanoid.WalkSpeed = v and hub.WalkSpeed or hub.OriginalWalkSpeed
             end
         end
     })
 
     -- JumpPower
+    M.Player:Divider()
     M.Player:Slider({
         Title = "Power Value",
         Value = {Min = 50, Max = 300, Default = 50},
         Step = 1,
         Flag = "JumpPower",
-        Callback = function(v) hub.JumpPower = v end
+        Callback = function(v)
+            hub.JumpPower = v
+            if hub.Flags.JumpPowerEnabled and hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                local hum = hub.LocalPlayer.Character.Humanoid
+                hum.UseJumpPower = true
+                hum.JumpPower = v
+            end
+        end
     })
 
     M.Player:Toggle({
@@ -138,10 +268,15 @@ return function(Win, hub)
         Flag = "JumpPowerEnabled",
         Callback = function(v)
             hub.Flags.JumpPowerEnabled = v
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                local hum = LocalPlayer.Character.Humanoid
-                hum.UseJumpPower = v
-                hum.JumpPower = v and hub.JumpPower or 50
+            if hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("Humanoid") then
+                local hum = hub.LocalPlayer.Character.Humanoid
+                if v then
+                    hum.UseJumpPower = true
+                    hum.JumpPower = hub.JumpPower
+                else
+                    hum.UseJumpPower = false
+                    hum.JumpHeight = 7.2
+                end
             end
         end
     })
@@ -149,42 +284,42 @@ return function(Win, hub)
     -- Teleport features
     M.Player:Divider()
 
-    local selectedPlayer = ""
-    local function updatePlayerList()
-        local list = {}
-        for _, plr in Players:GetPlayers() do
-            if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+    local selP = ""
+    local function updP()
+        local l = {}
+        for _, p in pairs(hub.Players:GetPlayers()) do
+            if p ~= hub.LocalPlayer then table.insert(l, p.Name) end
         end
-        return list
+        return l
     end
 
     M.Player:Dropdown({
         Title = "Select Player",
-        Values = updatePlayerList(),
+        Values = updP(),
         Multi = false,
         Value = "",
         Flag = "SelectedPlayer",
-        Callback = function(v) selectedPlayer = v end
+        Callback = function(v) selP = v end
     })
 
     M.Player:Button({
         Title = "Teleport to Player",
         Icon = "map-pin",
         Callback = function()
-            if selectedPlayer == "" then
-                hub:Notify("Teleport", "No player selected", "alert-circle")
+            if selP == "" then
+                hub:Notify("Error", "Please select a player", "alert-circle")
                 return
             end
-            local target = Players:FindFirstChild(selectedPlayer)
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                    hub:Notify("Success", "Teleported to " .. selectedPlayer, "check")
+            local t = hub.Players:FindFirstChild(selP)
+            if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+                if hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    hub.LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                    hub:Notify("Success", "Teleported to " .. selP, "check")
                 else
                     hub:Notify("Error", "Your character not found", "x")
                 end
             else
-                hub:Notify("Error", "Player or character not found", "x")
+                hub:Notify("Error", "Player not found", "x")
             end
         end
     })
@@ -193,12 +328,11 @@ return function(Win, hub)
         Title = "Copy Current Position",
         Icon = "copy",
         Callback = function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local pos = LocalPlayer.Character.HumanoidRootPart.Position
+            local char = hub.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local pos = char.HumanoidRootPart.Position
                 setclipboard(string.format("%.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z))
-                hub:Notify("Copied", "Position copied to clipboard", "clipboard-check")
-            else
-                hub:Notify("Error", "No character found", "x")
+                hub:Notify("Copied!", "Position copied to clipboard", "clipboard-check")
             end
         end
     })
@@ -208,13 +342,14 @@ return function(Win, hub)
         Value = "",
         Placeholder = "X, Y, Z",
         Flag = "TeleportCoords",
-        Callback = function(input)
-            if input == "" then return end
-            local x, y, z = input:match("([%d%.%-]+)%s*,%s*([%d%.%-]+)%s*,%s*([%d%.%-]+)")
+        Callback = function(v)
+            if v == "" then return end
+            local x, y, z = v:match("([%d%.%-]+)[%s,]+([%d%.%-]+)[%s,]+([%d%.%-]+)")
             if x and y and z then
                 x, y, z = tonumber(x), tonumber(y), tonumber(z)
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
+                local char = hub.LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
                     hub:Notify("Success", "Teleported to coordinates", "check")
                 end
             else
@@ -223,14 +358,11 @@ return function(Win, hub)
         end
     })
 
-    -- ==============================================
-    --  VISUAL SECTION (only the players counter here)
-    -- ==============================================
+    -- Visual section – Players counter
+    local function getPC() return #hub.Players:GetPlayers() end
 
-    local function getPlayerCount() return #Players:GetPlayers() end
-
-    local playersBtn = M.Visual:Button({
-        Title = "Players: " .. getPlayerCount(),
+    local pCB = M.Visual:Button({
+        Title = "Players: " .. getPC(),
         Icon = "users",
         Callback = function() end
     })
@@ -238,24 +370,21 @@ return function(Win, hub)
     task.spawn(function()
         while task.wait(0.5) do
             pcall(function()
-                playersBtn:SetTitle("Players: " .. getPlayerCount())
+                pCB:SetTitle("Players: " .. getPC())
             end)
         end
     end)
 
-    -- ==============================================
-    --  OTHER SECTION (only inventory here)
-    -- ==============================================
-
+    -- Other section – Inventory toggle
     M.Other:Toggle({
         Title = "Enable Inventory",
         Value = false,
         Flag = "EnableInventory",
         Callback = function(v)
-            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, v)
+            hub.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, v)
             hub.Flags.EnableInventory = v
         end
-    }
+    })
 
     hub:Notify("Home", "Player features loaded", "home", 3)
 end
