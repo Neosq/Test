@@ -1,8 +1,8 @@
 -- other.lua
--- Inventory, ShiftLock, TpTool
+-- Other features: Inventory, ShiftLock, TpTool
 
 return function(Win, hub)
-    local M = hub.Win:FindTab("Home"):FindMultiSection("Features")
+    local M = hub.HomeMultiSection
 
     -- Enable Backpack / Inventory visibility
     M.Other:Toggle({
@@ -14,9 +14,9 @@ return function(Win, hub)
         end
     })
 
-    -- ShiftLock toggle
     M.Other:Divider()
 
+    -- ShiftLock toggle
     M.Other:Toggle({
         Title = "ShiftLock",
         Value = false,
@@ -36,9 +36,9 @@ return function(Win, hub)
         end
     })
 
-    -- TpTool (teleport tool)
     M.Other:Divider()
 
+    -- TpTool (teleport tool)
     M.Other:Toggle({
         Title = "TpTool",
         Value = false,
@@ -52,8 +52,9 @@ return function(Win, hub)
 
                 tool.Activated:Connect(function()
                     local mouse = hub.LocalPlayer:GetMouse()
-                    if hub.LocalPlayer.Character and hub.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and mouse.Hit then
-                        hub.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+                    local char = hub.LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") and mouse.Hit then
+                        char.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
                     end
                 end)
 
