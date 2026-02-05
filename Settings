@@ -1,7 +1,5 @@
-ttings", 3)
-end
 -- settings.lua
--- Settings tab – Configs, Theme, Console, Credits
+-- Settings tab – Configuration, Theme, Console, Credits
 
 return function(Win, hub)
     local ST = Win:Tab({
@@ -122,7 +120,7 @@ return function(Win, hub)
         Value = false,
         Flag = "DontShowWarning",
         Callback = function(v)
-            -- You can store this in hub.Flags if needed later
+            -- Can be used later if needed (e.g. skip dialogs)
         end
     })
 
@@ -212,11 +210,11 @@ return function(Win, hub)
         Title = "Copy Discord Server",
         Icon = "message-circle",
         Callback = function()
-            setclipboard("https://discord.gg/yourdiscord")  -- ← change to real link if needed
+            setclipboard("https://discord.gg/yourdiscord")  -- change to real link if you have one
             hub:Notify("Copied!", "Discord link copied", "clipboard-check")
         end
     })
 
-    -- Final load message (can be here or in loader)
+    -- Final load message
     hub:Notify("Settings", "All settings & credits loaded", "settings", 3)
 end
