@@ -383,5 +383,7 @@ return function(Win, hub)
         end
     })
 
+hub.HomeMultiSection = M
+
     hub:Notify("Home", "Player features loaded", "home", 3)
 end
