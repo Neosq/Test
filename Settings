@@ -178,7 +178,6 @@ return function(Win, hub)
         end
     })
 
-    -- Credits tab
     local CrT = Win:Tab({
         Title = "Credits",
         Icon = "info",
@@ -202,19 +201,27 @@ return function(Win, hub)
     CrT:Divider()
 
     CrT:Paragraph({
-        Title = "WindUI Forked",
+        Title = "WindUI",
         Desc = "UI Library by orialdev\nFork of the original WindUI"
     })
 
     CrT:Button({
-        Title = "Copy Discord Server",
+        Title = "Official Discord (WindUI creator)",
         Icon = "message-circle",
         Callback = function()
-            setclipboard("https://discord.gg/yourdiscord")  -- change to real link if you have one
+            setclipboard("https://discord.gg/ftgs-development-hub-1300692552005189632")
             hub:Notify("Copied!", "Discord link copied", "clipboard-check")
         end
     })
 
-    -- Final load message
+    CrT:Button({
+        Title = "Original Creator of WindUI Forked (orialdev)",
+        Icon = "github",
+        Callback = function()
+            setclipboard("https://github.com/orialdev/WindUI-Forked-by-orialdev/commits?author=orialdev")
+            hub:Notify("Copied!", "GitHub link copied", "clipboard-check")
+        end
+    })
+
     hub:Notify("Settings", "All settings & credits loaded", "settings", 3)
 end
