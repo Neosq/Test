@@ -117,9 +117,157 @@ end
 
     CM.Firing:Divider()
 
-    local partName = ""
-    local allowTeleport = false
-    local partFireType = "ProximityPrompt"
+local partNamesInput = ""           
+local selectedOptions = {}          
+local tweenSpeedAuto = 16           
+
+CM.Firing:Input({
+    Title = "Part Names / Paths (comma separated)",
+    Value = "",
+    Placeholder = "Part1, Part2, Part3",
+    Flag = "PartNamesInput",
+    Callback = function(v)
+        partNamesInput = v
+    end
+})
+
+CM.Firing:Dropdown({
+    Title = "Fire Options (multi-select)",
+    Values = {
+        "Allow Teleport",
+        "Allow Tween",
+        "Multi Part (ignore numbering)",
+        "Allow Path (full path support)"
+    },
+    Multi = true,
+    Value = {"Allow Teleport"},  
+    Callback = function(selected)
+        selectedOptions = selected
+        
+        if table.find(selected, "Allow Teleport") and table.find(selected, "Allow Tween") then
+            local newSelected = {}
+            for _, opt in ipairs(selected) do
+                if opt ~= "Allow Teleport" then table.insert(newSelected, opt) end
+            end
+            selectedOptions = newSelected
+            hub:Notify("Conflict", "Tween & Teleport can't be enable at the same time.", "alert-triangle", 4)
+        end
+        
+    end
+})
+
+task.spawn(function()
+    while task.wait(1) do
+        local char = hub.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            tweenSpeedAuto = char.Humanoid.WalkSpeed
+        end
+    end
+end)
+
+CM.Firing:Button({
+    Title = "Fire Selected Types (In Part)",
+    Icon = "target",
+    Callback = function()
+        if partNamesInput == "" then
+            hub:Notify("Error", "Введите хотя бы одно имя/путь", "x")
+            return
+        end
+
+        local names = {}
+        for name in string.gmatch(partNamesInput, "[^,]+") do
+            table.insert(names, name:match("^%s*(.-)%s*$"))  -- убираем пробелы
+        end
+
+        local hasTeleport = table.find(selectedOptions, "Allow Teleport")
+        local hasTween    = table.find(selectedOptions, "Allow Tween")
+        local multiPart   = table.find(selectedOptions, "Multi Part (ignore numbering)")
+        local allowPath   = table.find(selectedOptions, "Allow Path (full path support)")
+
+        local tpCode = ""
+        if hasTeleport then
+            tpCode = [[
+    local c = game.Players.LocalPlayer.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        c.HumanoidRootPart.CFrame = p.CFrame + Vector3.new(0, 3, 0)
+        wait(0.1)
+    end
+]]
+        end
+
+        local tweenCode = ""
+        if hasTween then
+            tweenCode = string.format([[
+    local TweenService = game:GetService("TweenService")
+    local c = game.Players.LocalPlayer.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        local hrp = c.HumanoidRootPart
+        local tweenInfo = TweenInfo.new(%d, Enum.EasingStyle.Linear)
+        local goal = {CFrame = p.CFrame + Vector3.new(0, 3, 0)}
+        TweenService:Create(hrp, tweenInfo, goal):Play()
+        wait(%d + 0.2)
+    end
+]], tweenSpeedAuto, tweenSpeedAuto)
+        end
+
+        local fireCodes = {}
+        for _, typeName in ipairs({"ProximityPrompt", "ClickDetector", "TouchInterest"}) do
+            local loop = ""
+            if typeName == "ProximityPrompt" then
+                loop = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
+            elseif typeName == "ClickDetector" then
+                loop = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
+            elseif typeName == "TouchInterest" then
+                loop = [[
+    local c = game.Players.LocalPlayer.Character
+    if c and c:FindFirstChild("HumanoidRootPart") then
+        for _,v in pairs(p:GetDescendants()) do
+            if v:IsA("BasePart") and v:FindFirstChild("TouchInterest") then
+                firetouchinterest(c.HumanoidRootPart, v, 0)
+                firetouchinterest(c.HumanoidRootPart, v, 1)
+            end
+        end
+    end]]
+            end
+            table.insert(fireCodes, loop)
+        end
+
+        local finalScript = ""
+        for _, name in ipairs(names) do
+            local findCode = allowPath and ('local p = ' .. name) or ('local p = workspace:FindFirstChild("' .. name .. '", true)')
+            if multiPart then
+                findCode = 'for _, p in pairs(workspace:GetDescendants()) do if p.Name == "' .. name .. '" then'
+            end
+
+            local scriptPart = findCode .. [[
+    if p then
+]] .. tpCode .. tweenCode
+
+            for _, f in ipairs(fireCodes) do
+                scriptPart = scriptPart .. "\n        " .. f
+            end
+
+            scriptPart = scriptPart .. "\n    end\n"
+
+            if multiPart then scriptPart = scriptPart .. "end" end
+
+            finalScript = finalScript .. scriptPart .. "\n"
+        end
+
+        setclipboard(finalScript)
+        hub:Notify("Success", "Script " .. #names .. " Copied", "clipboard-check")
+    end
+})
+
+CM["ESP Parts"]:Input({
+    Title = "Part/Model Names (comma separated)",
+    Value = "",
+    Placeholder = "Part1, Part2, Part3",
+    Flag = "ESPPartNames",
+    Callback = function(v)
+        espPartName = v
+    end
+})
 
     CM.Firing:Input({
         Title = "Part Name (In Part Fire)",
@@ -146,75 +294,6 @@ end
             partFireType = v
         end
     })
-
-    CM.Firing:Button({
-        Title = "Fire Selected Type (In Part)",
-        Icon = "target",
-        Callback = function()
-            if partName == "" then
-                hub:Notify("Error", "Enter part name first", "x")
-                return
-            end
-
-            local tpLine = allowTeleport and [[
-    local c = game.Players.LocalPlayer.Character
-    if c and c:FindFirstChild("HumanoidRootPart") then
-        c.HumanoidRootPart.CFrame = p.CFrame + Vector3.new(0, 3, 0)
-    end
-]] or ""
-
-            local fireLine = ""
-
-            if partFireType == "ProximityPrompt" then
-                fireLine = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
-            elseif partFireType == "ClickDetector" then
-                fireLine = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
-            elseif partFireType == "TouchInterest" then
-                fireLine = [[
-    local c = game.Players.LocalPlayer.Character
-    if c and c:FindFirstChild("HumanoidRootPart") then
-        for _,v in pairs(p:GetDescendants()) do
-            if v:IsA("BasePart") and v:FindFirstChild("TouchInterest") then
-                firetouchinterest(c.HumanoidRootPart, v, 0)
-                firetouchinterest(c.HumanoidRootPart, v, 1)
-            end
-        end
-    end]]
-            end
-
-            local code = string.format([[
-local p = workspace:FindFirstChild("%s", true)
-if p then%s
-    %s
-end
-]], partName, tpLine, fireLine)
-
-            setclipboard(code)
-            hub:Notify("Success", partFireType .. " fire script (in part) copied", "clipboard-check")
-        end
-    })
-
-    -- ESP Parts
-    local espPartName = ""
-    local espPartColor = Color3.fromRGB(255, 0, 0)
-    local espPartEnabled = false
-    local espPartHighlights = {}
-
-    CM["ESP Parts"]:Input({
-        Title = "Part/Model Name",
-        Value = "",
-        Placeholder = "Enter name",
-        Flag = "ESPPartName",
-        Callback = function(v) espPartName = v end
-    })
-
-    CM["ESP Parts"]:Colorpicker({
-        Title = "ESP Color",
-        Value = espPartColor,
-        Flag = "ESPPartColor",
-        Callback = function(v) espPartColor = v end
-    })
-
     CM["ESP Parts"]:Toggle({
         Title = "Enable ESP",
         Value = false,
