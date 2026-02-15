@@ -78,126 +78,107 @@ end
         end
     })
 
-    -- Firing section with dropdowns
+    -- Firing section (updated & fixed)
     CM.Firing:Divider()
 
-    local globalFireType = "ProximityPrompt"
+    local partNamesInput = ""
+    local selectedOptions = {}
+    local tweenSpeedAuto = 16
+
+    CM.Firing:Input({
+        Title = "Part Names / Paths (comma separated)",
+        Value = "",
+        Placeholder = "Part1, MegaPart, checkpoint or Workspace.Folder.Part",
+        Flag = "PartNamesInput",
+        Callback = function(v)
+            partNamesInput = v
+        end
+    })
 
     CM.Firing:Dropdown({
-        Title = "Fire Type (Global)",
+        Title = "Fire Type",
         Values = {"ProximityPrompt", "ClickDetector", "TouchInterest"},
         Multi = false,
         Value = "ProximityPrompt",
-        Flag = "GlobalFireType",
+        Flag = "FireType",
         Callback = function(v)
             globalFireType = v
         end
     })
 
-    CM.Firing:Button({
-        Title = "Fire Selected Type (Global)",
-        Icon = "radio",
-        Callback = function()
-            local code = ""
-
-            if globalFireType == "ProximityPrompt" then
-                code = [[for _,v in pairs(workspace:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
-            elseif globalFireType == "ClickDetector" then
-                code = [[for _,v in pairs(workspace:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
-            elseif globalFireType == "TouchInterest" then
-                code = [[local c = game.Players.LocalPlayer.Character if c and c:FindFirstChild("HumanoidRootPart") then for _,v in pairs(workspace:GetDescendants()) do if v:IsA("BasePart") and v:FindFirstChild("TouchInterest") then firetouchinterest(c.HumanoidRootPart, v, 0) firetouchinterest(c.HumanoidRootPart, v, 1) end end end]]
-            end
-
-            if code ~= "" then
-                setclipboard(code)
-                hub:Notify("Success", globalFireType .. " fire script copied (global)", "clipboard-check")
+    CM.Firing:Dropdown({
+        Title = "Additional Options (multi-select)",
+        Values = {
+            "Allow Teleport",
+            "Allow Tween",
+            "Multi Part (ignore numbering)",
+            "Allow Path (full path support)"
+        },
+        Multi = true,
+        Value = {},  -- nothing selected by default
+        Callback = function(selected)
+            selectedOptions = selected
+            
+            -- Prevent Teleport + Tween at the same time (Tween priority)
+            local hasTeleport = table.find(selectedOptions, "Allow Teleport")
+            local hasTween = table.find(selectedOptions, "Allow Tween")
+            
+            if hasTeleport and hasTween then
+                local newSelected = {}
+                for _, opt in ipairs(selectedOptions) do
+                    if opt ~= "Allow Teleport" then
+                        table.insert(newSelected, opt)
+                    end
+                end
+                selectedOptions = newSelected
+                
+                hub:Notify("Conflict", "Tween and Teleport cannot be enabled together. Tween kept.", "alert-triangle", 4)
             end
         end
     })
 
-    CM.Firing:Divider()
-
-local partNamesInput = ""           
-local selectedOptions = {}          
-local tweenSpeedAuto = 16           
-
-CM.Firing:Input({
-    Title = "Part Names / Paths (comma separated)",
-    Value = "",
-    Placeholder = "Part1, Part2, Part3",
-    Flag = "PartNamesInput",
-    Callback = function(v)
-        partNamesInput = v
-    end
-})
-
-CM.Firing:Dropdown({
-    Title = "Fire Options (multi-select)",
-    Values = {
-        "Allow Teleport",
-        "Allow Tween",
-        "Multi Part (ignore numbering)",
-        "Allow Path (full path support)"
-    },
-    Multi = true,
-    Value = {"Allow Teleport"},  
-    Callback = function(selected)
-        selectedOptions = selected
-        
-        if table.find(selected, "Allow Teleport") and table.find(selected, "Allow Tween") then
-            local newSelected = {}
-            for _, opt in ipairs(selected) do
-                if opt ~= "Allow Teleport" then table.insert(newSelected, opt) end
+    task.spawn(function()
+        while task.wait(1) do
+            local char = hub.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                tweenSpeedAuto = char.Humanoid.WalkSpeed
             end
-            selectedOptions = newSelected
-            hub:Notify("Conflict", "Tween & Teleport can't be enable at the same time.", "alert-triangle", 4)
         end
-        
-    end
-})
+    end)
 
-task.spawn(function()
-    while task.wait(1) do
-        local char = hub.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            tweenSpeedAuto = char.Humanoid.WalkSpeed
-        end
-    end
-end)
+    CM.Firing:Button({
+        Title = "Fire Selected Types (In Part)",
+        Icon = "target",
+        Callback = function()
+            if partNamesInput == "" then
+                hub:Notify("Error", "Enter at least one name/path", "x")
+                return
+            end
 
-CM.Firing:Button({
-    Title = "Fire Selected Types (In Part)",
-    Icon = "target",
-    Callback = function()
-        if partNamesInput == "" then
-            hub:Notify("Error", "Введите хотя бы одно имя/путь", "x")
-            return
-        end
+            local names = {}
+            for name in string.gmatch(partNamesInput, "[^,]+") do
+                table.insert(names, name:match("^%s*(.-)%s*$"))
+            end
 
-        local names = {}
-        for name in string.gmatch(partNamesInput, "[^,]+") do
-            table.insert(names, name:match("^%s*(.-)%s*$"))  -- убираем пробелы
-        end
+            local hasTeleport = table.find(selectedOptions, "Allow Teleport")
+            local hasTween    = table.find(selectedOptions, "Allow Tween")
+            local multiPart   = table.find(selectedOptions, "Multi Part (ignore numbering)")
+            local allowPath   = table.find(selectedOptions, "Allow Path (full path support)")
 
-        local hasTeleport = table.find(selectedOptions, "Allow Teleport")
-        local hasTween    = table.find(selectedOptions, "Allow Tween")
-        local multiPart   = table.find(selectedOptions, "Multi Part (ignore numbering)")
-        local allowPath   = table.find(selectedOptions, "Allow Path (full path support)")
-
-        local tpCode = ""
-        if hasTeleport then
-            tpCode = [[
+            local tpCode = ""
+            if hasTeleport then
+                tpCode = [[
     local c = game.Players.LocalPlayer.Character
     if c and c:FindFirstChild("HumanoidRootPart") then
         c.HumanoidRootPart.CFrame = p.CFrame + Vector3.new(0, 3, 0)
         wait(0.1)
     end
 ]]
-        end
+            end
 
-        local tweenCode = ""
-        if hasTween then
-            tweenCode = string.format([[
+            local tweenCode = ""
+            if hasTween then
+                tweenCode = string.format([[
     local TweenService = game:GetService("TweenService")
     local c = game.Players.LocalPlayer.Character
     if c and c:FindFirstChild("HumanoidRootPart") then
@@ -208,17 +189,17 @@ CM.Firing:Button({
         wait(%d + 0.2)
     end
 ]], tweenSpeedAuto, tweenSpeedAuto)
-        end
+            end
 
-        local fireCodes = {}
-        for _, typeName in ipairs({"ProximityPrompt", "ClickDetector", "TouchInterest"}) do
-            local loop = ""
+            local fireLoop = ""
+            local typeName = globalFireType
+
             if typeName == "ProximityPrompt" then
-                loop = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
+                fireLoop = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ProximityPrompt") then fireproximityprompt(v) end end]]
             elseif typeName == "ClickDetector" then
-                loop = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
+                fireLoop = [[for _,v in pairs(p:GetDescendants()) do if v:IsA("ClickDetector") then fireclickdetector(v) end end]]
             elseif typeName == "TouchInterest" then
-                loop = [[
+                fireLoop = [[
     local c = game.Players.LocalPlayer.Character
     if c and c:FindFirstChild("HumanoidRootPart") then
         for _,v in pairs(p:GetDescendants()) do
@@ -229,71 +210,55 @@ CM.Firing:Button({
         end
     end]]
             end
-            table.insert(fireCodes, loop)
-        end
 
-        local finalScript = ""
-        for _, name in ipairs(names) do
-            local findCode = allowPath and ('local p = ' .. name) or ('local p = workspace:FindFirstChild("' .. name .. '", true)')
-            if multiPart then
-                findCode = 'for _, p in pairs(workspace:GetDescendants()) do if p.Name == "' .. name .. '" then'
-            end
+            local finalScript = ""
 
-            local scriptPart = findCode .. [[
+            for _, name in ipairs(names) do
+                local findCode
+                if allowPath then
+                    findCode = "local p = " .. name
+                elseif multiPart then
+                    findCode = 'for _, p in pairs(workspace:GetDescendants()) do if p.Name == "' .. name .. '" then'
+                else
+                    findCode = 'local p = workspace:FindFirstChild("' .. name .. '", true)'
+                end
+
+                local scriptPart = findCode .. [[
     if p then
-]] .. tpCode .. tweenCode
+]] .. tpCode .. tweenCode .. "\n        " .. fireLoop .. [[
+    end
+]]
 
-            for _, f in ipairs(fireCodes) do
-                scriptPart = scriptPart .. "\n        " .. f
+                if multiPart then scriptPart = scriptPart .. "end" end
+
+                finalScript = finalScript .. scriptPart .. "\n\n"
             end
 
-            scriptPart = scriptPart .. "\n    end\n"
-
-            if multiPart then scriptPart = scriptPart .. "end" end
-
-            finalScript = finalScript .. scriptPart .. "\n"
+            setclipboard(finalScript)
+            hub:Notify("Success", "Script for " .. #names .. " parts copied!", "clipboard-check")
         end
+    })
 
-        setclipboard(finalScript)
-        hub:Notify("Success", "Script " .. #names .. " Copied", "clipboard-check")
-    end
-})
-
-CM["ESP Parts"]:Input({
-    Title = "Part/Model Names",
-    Value = "",
-    Placeholder = "Part1, Part2, Part3",
-    Flag = "ESPPartNames",
-    Callback = function(v)
-        espPartName = v
-    end
-})
-
-    CM.Firing:Input({
-        Title = "Part Name (In Part Fire)",
+    -- ESP Parts with comma support
+    CM["ESP Parts"]:Input({
+        Title = "Part/Model Names (comma separated)",
         Value = "",
-        Placeholder = "Enter part name",
-        Flag = "PartName",
-        Callback = function(v) partName = v end
-    })
-
-    CM.Firing:Toggle({
-        Title = "Teleport to Part Before Fire",
-        Value = false,
-        Flag = "AllowTeleport",
-        Callback = function(v) allowTeleport = v end
-    })
-
-    CM.Firing:Dropdown({
-        Title = "Fire Type (In Part)",
-        Values = {"ProximityPrompt", "ClickDetector", "TouchInterest"},
-        Multi = false,
-        Value = "ProximityPrompt",
-        Flag = "PartFireType",
+        Placeholder = "Part1, MegaPart, checkpoint",
+        Flag = "ESPPartNames",
         Callback = function(v)
-            partFireType = v
+            espPartName = v
         end
     })
+
+    CM["ESP Parts"]:Colorpicker({
+        Title = "ESP Color",
+        Value = espPartColor,
+        Flag = "ESPPartColor",
+        Callback = function(v)
+            espPartColor = v
+        end
+    })
+
     CM["ESP Parts"]:Toggle({
         Title = "Enable ESP",
         Value = false,
@@ -301,30 +266,30 @@ CM["ESP Parts"]:Input({
         Callback = function(v)
             espPartEnabled = v
             if v then
-    local names = {}
-    for name in string.gmatch(espPartName, "[^,]+") do
-        table.insert(names, name:match("^%s*(.-)%s*$"))
-    end
-
-    espPartHighlights = {}
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if (obj:IsA("BasePart") or obj:IsA("Model")) then
-            for _, n in ipairs(names) do
-                if obj.Name == n then
-                    local h = Instance.new("Highlight")
-                    h.Adornee = obj
-                    h.FillColor = espPartColor
-                    h.OutlineColor = espPartColor
-                    h.FillTransparency = 0.5
-                    h.OutlineTransparency = 0
-                    h.Parent = obj
-                    table.insert(espPartHighlights, h)
+                local names = {}
+                for name in string.gmatch(espPartName, "[^,]+") do
+                    table.insert(names, name:match("^%s*(.-)%s*$"))
                 end
-            end
-        end
-    end
 
-                hub:Notify("Success", "ESP enabled for: " .. espPartName .. " (" .. #espPartHighlights .. " objects)", "check")
+                espPartHighlights = {}
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if (obj:IsA("BasePart") or obj:IsA("Model")) then
+                        for _, n in ipairs(names) do
+                            if obj.Name == n then
+                                local h = Instance.new("Highlight")
+                                h.Adornee = obj
+                                h.FillColor = espPartColor
+                                h.OutlineColor = espPartColor
+                                h.FillTransparency = 0.5
+                                h.OutlineTransparency = 0
+                                h.Parent = obj
+                                table.insert(espPartHighlights, h)
+                            end
+                        end
+                    end
+                end
+
+                hub:Notify("Success", "ESP enabled for " .. #espPartHighlights .. " objects", "check")
             else
                 for _, hl in pairs(espPartHighlights) do
                     pcall(function() hl:Destroy() end)
@@ -336,7 +301,7 @@ CM["ESP Parts"]:Input({
     })
 
     CM["ESP Parts"]:Button({
-        Title = "Delete ESP for this Part",
+        Title = "Delete ESP for these Parts",
         Icon = "trash",
         Callback = function()
             if espPartName == "" then
@@ -344,17 +309,27 @@ CM["ESP Parts"]:Input({
                 return
             end
 
+            local names = {}
+            for name in string.gmatch(espPartName, "[^,]+") do
+                table.insert(names, name:match("^%s*(.-)%s*$"))
+            end
+
             local count = 0
             for i = #espPartHighlights, 1, -1 do
                 local hl = espPartHighlights[i]
-                if hl and hl.Adornee and hl.Adornee.Name == espPartName then
-                    pcall(function() hl:Destroy() end)
-                    table.remove(espPartHighlights, i)
-                    count += 1
+                if hl and hl.Adornee then
+                    for _, n in ipairs(names) do
+                        if hl.Adornee.Name == n then
+                            pcall(function() hl:Destroy() end)
+                            table.remove(espPartHighlights, i)
+                            count = count + 1
+                            break
+                        end
+                    end
                 end
             end
 
-            hub:Notify("Success", "Removed ESP for " .. espPartName .. " (" .. count .. " objects)", "check")
+            hub:Notify("Success", "Removed ESP for " .. count .. " objects", "check")
         end
     })
 
