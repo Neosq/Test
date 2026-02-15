@@ -438,5 +438,3 @@ ExtraMS["Player"]:Paragraph({
     Title = "Note",
     Desc = "These are external scripts loaded from GitHub.\nUse at your own risk."
 })
-
-end
