@@ -333,7 +333,6 @@ return function(Win, hub)
         end
     })
 
-    -- New 4th section: Emotes & Extra
     OM["Emotes & Extra"]:Button({
         Title = "Load Emotes GUI",
         Icon = "smile",
@@ -343,9 +342,47 @@ return function(Win, hub)
         end
     })
 
-    -- Optional: small text or divider if you want
     OM["Emotes & Extra"]:Paragraph({
         Title = "Extra Scripts",
         Desc = "Click the button above to load the Emotes GUI from external source."
     })
 end
+
+local ExtraMS = OST:MultiSection({
+    Title = "Extra Tools & Scripts",
+    Sections = {"Infinite Yield", "Player"}
+})
+
+-- Section 1: Infinite Yield
+ExtraMS["Infinite Yield"]:Button({
+    Title = "Load Infinite Yield",
+    Icon = "terminal",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+        hub:Notify("Loaded", "Infinite Yield executed", "terminal", 4)
+    end
+})
+
+-- Section 2: Player tools
+ExtraMS["Player"]:Button({
+    Title = "Load Hitbox Expander",
+    Icon = "target",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Vcsk/RobloxScripts/main/HitboxExpander.lua"))()
+        hub:Notify("Loaded", "Hitbox Expander executed", "target", 4)
+    end
+})
+
+ExtraMS["Player"]:Button({
+    Title = "Load Fling GUI",
+    Icon = "move-3d",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe./main/Fling%20GUI"))()
+        hub:Notify("Loaded", "Fling GUI executed", "move-3d", 4)
+    end
+})
+
+ExtraMS["Player"]:Paragraph({
+    Title = "Note",
+    Desc = "These are external scripts loaded from GitHub.\nUse at your own risk."
+})
