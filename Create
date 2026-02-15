@@ -260,7 +260,7 @@ CM.Firing:Button({
 })
 
 CM["ESP Parts"]:Input({
-    Title = "Part/Model Names (comma separated)",
+    Title = "Part/Model Names",
     Value = "",
     Placeholder = "Part1, Part2, Part3",
     Flag = "ESPPartNames",
@@ -301,25 +301,28 @@ CM["ESP Parts"]:Input({
         Callback = function(v)
             espPartEnabled = v
             if v then
-                if espPartName == "" then
-                    hub:Notify("Error", "Enter part/model name first", "x")
-                    return
-                end
+    local names = {}
+    for name in string.gmatch(espPartName, "[^,]+") do
+        table.insert(names, name:match("^%s*(.-)%s*$"))
+    end
 
-                espPartHighlights = {}
-                for _, obj in workspace:GetDescendants() do
-                    if (obj:IsA("BasePart") or obj:IsA("Model")) and obj.Name == espPartName then
-                        local hl = Instance.new("Highlight")
-                        hl.Name = "ESPPartHighlight"
-                        hl.Adornee = obj
-                        hl.FillColor = espPartColor
-                        hl.OutlineColor = espPartColor
-                        hl.FillTransparency = 0.5
-                        hl.OutlineTransparency = 0
-                        hl.Parent = obj
-                        table.insert(espPartHighlights, hl)
-                    end
+    espPartHighlights = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if (obj:IsA("BasePart") or obj:IsA("Model")) then
+            for _, n in ipairs(names) do
+                if obj.Name == n then
+                    local h = Instance.new("Highlight")
+                    h.Adornee = obj
+                    h.FillColor = espPartColor
+                    h.OutlineColor = espPartColor
+                    h.FillTransparency = 0.5
+                    h.OutlineTransparency = 0
+                    h.Parent = obj
+                    table.insert(espPartHighlights, h)
                 end
+            end
+        end
+    end
 
                 hub:Notify("Success", "ESP enabled for: " .. espPartName .. " (" .. #espPartHighlights .. " objects)", "check")
             else
