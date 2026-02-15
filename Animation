@@ -1,4 +1,4 @@
--- animations.lua
+-- Animation.lua
 -- Other Scripts tab – Standard & Hybrid animations + Build Manager + Emotes
 
 return function(Win, hub)
@@ -76,8 +76,7 @@ return function(Win, hub)
     ["Vampire"] = { idle = "1083445855", walk = "1083473930", run = "1083462077", jump = "1083455352", fall = "1083443587", climb = "1083439238", swim = "1083464683" },
 
     ["Pirate"] = { idle = "750781874", walk = "750785693", run = "750783738", jump = "750782230", fall = "750780242", climb = "750779899", swim = "750784579" },
-
-}
+    }
 
     local currentBundle = "Rthro"
     local animationsEnabled = false
@@ -223,7 +222,7 @@ return function(Win, hub)
         })
     end
 
-    -- Build Manager (in its own section)
+    -- Build Manager
     OM["Build Manager"]:Divider()
 
     local myBuilds = {}
@@ -385,6 +384,7 @@ return function(Win, hub)
         end
     })
 
+    -- Emotes & Extra
     OM["Emotes & Extra"]:Button({
         Title = "Load Emotes GUI",
         Icon = "smile",
@@ -394,47 +394,41 @@ return function(Win, hub)
         end
     })
 
-    OM["Emotes & Extra"]:Paragraph({
-        Title = "Extra Scripts",
-        Desc = "Click the button above to load the Emotes GUI from external source."
+    -- Extra Tools & Scripts (new MultiSection)
+    local ExtraMS = OST:MultiSection({
+        Title = "Extra Tools & Scripts",
+        Sections = {"Infinite Yield", "Player"}
+    })
+
+    ExtraMS["Infinite Yield"]:Button({
+        Title = "Load Infinite Yield",
+        Icon = "terminal",
+        Callback = function()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+            hub:Notify("Loaded", "Infinite Yield executed", "terminal", 4)
+        end
+    })
+
+    ExtraMS["Player"]:Button({
+        Title = "Load Hitbox Expander",
+        Icon = "target",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Vcsk/RobloxScripts/main/HitboxExpander.lua"))()
+            hub:Notify("Loaded", "Hitbox Expander executed", "target", 4)
+        end
+    })
+
+    ExtraMS["Player"]:Button({
+        Title = "Load Fling GUI",
+        Icon = "move-3d",
+        Callback = function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe./main/Fling%20GUI"))()
+            hub:Notify("Loaded", "Fling GUI executed", "move-3d", 4)
+        end
+    })
+
+    ExtraMS["Player"]:Paragraph({
+        Title = "Note",
+        Desc = "External scripts from GitHub.\nUse at your own risk."
     })
 end
-
-local ExtraMS = OST:MultiSection({
-    Title = "Extra Tools & Scripts",
-    Sections = {"Infinite Yield", "Player"}
-})
-
--- Section 1: Infinite Yield
-ExtraMS["Infinite Yield"]:Button({
-    Title = "Load Infinite Yield",
-    Icon = "terminal",
-    Callback = function()
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-        hub:Notify("Loaded", "Infinite Yield executed", "terminal", 4)
-    end
-})
-
--- Section 2: Player tools
-ExtraMS["Player"]:Button({
-    Title = "Load Hitbox Expander",
-    Icon = "target",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Vcsk/RobloxScripts/main/HitboxExpander.lua"))()
-        hub:Notify("Loaded", "Hitbox Expander executed", "target", 4)
-    end
-})
-
-ExtraMS["Player"]:Button({
-    Title = "Load Fling GUI",
-    Icon = "move-3d",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe./main/Fling%20GUI"))()
-        hub:Notify("Loaded", "Fling GUI executed", "move-3d", 4)
-    end
-})
-
-ExtraMS["Player"]:Paragraph({
-    Title = "Note",
-    Desc = "These are external scripts loaded from GitHub.\nUse at your own risk."
-})
