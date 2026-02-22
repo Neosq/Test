@@ -1,9 +1,9 @@
+        end
 -- Home.lua
 return function(Win, hub)
     local HomeTab = Win:Tab({
         Title = "Home",
         Icon = "home",
-        Visible = true
     })
 
     local function pad(n) return n < 10 and "0" .. n or tostring(n) end
