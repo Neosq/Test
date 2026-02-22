@@ -16,21 +16,14 @@ end
 print("[Core] WindUI loaded successfully")
 
 local Win = WindUI:CreateWindow({
-    Title        = "Just A Hub  |  Beta 1.0.01",
-    Icon         = "github",
-    Author       = "by Neos",
-    Folder       = "JustAHub",
-    Size         = UDim2.fromOffset(600, 480),
-    MinSize      = Vector2.new(560, 350),
-    Transparent  = true,
-    Theme        = "Dark",
-    Resizable    = true,
-    SideBarWidth = 200,
-    HideSearchBar = false,
-    User = {
-        Enabled   = true,
-        Anonymous = false
-    }
+    Title       = "Just A Hub  |  Beta 1.0.01",
+    Icon        = "github",
+    Author      = "by Neos",
+    Folder      = "JustAHub",
+    Size        = UDim2.fromOffset(600, 480),
+    Transparent = true,
+    Theme       = "Dark",
+    Resizable   = true,
 })
 
 if not Win then
@@ -94,15 +87,19 @@ local hub = {
     _deactFly        = nil,
 
     Notify = function(self, title, content, icon, duration)
-        if self.Win and self.Win.Notify then
-            self.Win:Notify({
-                Title    = title or "Just A Hub",
-                Content  = content or "",
-                Icon     = icon or "info",
-                Duration = duration or 4
-            })
-        else
-            warn("[Hub Notify] " .. (title or "") .. ": " .. (content or ""))
+        -- В Boreal Notify вызывается через WindUI:Notify, не Win:Notify
+        local ok, err = pcall(function()
+            if self.Win and self.Win.Notify then
+                self.Win:Notify({
+                    Title    = title or "Just A Hub",
+                    Content  = content or "",
+                    Icon     = icon or "info",
+                    Duration = duration or 4
+                })
+            end
+        end)
+        if not ok then
+            warn("[Hub Notify] " .. (title or "") .. ": " .. (content or "") .. " | err: " .. tostring(err))
         end
     end,
 
