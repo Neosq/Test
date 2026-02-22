@@ -3,7 +3,6 @@ return function(Win, hub)
     local OST = Win:Tab({
         Title = "Other Scripts",
         Icon = "file-code",
-        Visible = true
     })
 
     local OM = OST:MultiSection({
