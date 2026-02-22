@@ -5,7 +5,6 @@ return function(Win, hub)
     local ST = Win:Tab({
         Title = "Settings",
         Icon = "settings",
-        Visible = true
     })
 
     local CfS = ST:Section({
@@ -181,7 +180,6 @@ return function(Win, hub)
     local CrT = Win:Tab({
         Title = "Credits",
         Icon = "info",
-        Visible = true
     })
 
     CrT:Paragraph({
