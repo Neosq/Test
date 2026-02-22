@@ -26,6 +26,7 @@ return function(Win, hub)
 
     HomeTab:Divider()
 
+    -- Новый Boreal API: MultiSection -> Tab вместо M.Player
     local M = HomeTab:MultiSection({
         Title = "Features",
         Icon = "layout-dashboard",
@@ -37,6 +38,7 @@ return function(Win, hub)
     local VisualTab = M:Tab({ Title = "Visual", Icon = "eye" })
     local OtherTab  = M:Tab({ Title = "Other",  Icon = "more-horizontal" })
 
+    -- Сохраняем в hub чтобы Visual.lua и Other.lua могли добавлять контент
     hub.HomeMultiSection = M
     hub.HomePlayerTab    = PlayerTab
     hub.HomeVisualTab    = VisualTab
@@ -98,14 +100,18 @@ return function(Win, hub)
         end
     })
 
+    -- Главный тоггл — включает всё выбранное в дропдауне
     PlayerTab:Toggle({
         Title = "Enable Selected",
         Value = false,
         Flag = "EnableSelected",
         Callback = function(v)
             if table.find(enabledFeatures, "Fly") then
-                if v then hub._actFly and hub._actFly()
-                else hub._deactFly and hub._deactFly() end
+                if v then
+                    if hub._actFly then hub._actFly() end
+                else
+                    if hub._deactFly then hub._deactFly() end
+                end
             end
             local char = hub.LocalPlayer.Character
             if char and char:FindFirstChild("Humanoid") then
@@ -333,6 +339,7 @@ return function(Win, hub)
         end
     })
 
+    -- ── VISUAL (счётчик игроков, остальное добавит Visual.lua) ──────────
     local function getPC() return #hub.Players:GetPlayers() end
     local pCB = VisualTab:Button({
         Title = "Players: " .. getPC(),
@@ -345,6 +352,7 @@ return function(Win, hub)
         end
     end)
 
+    -- ── OTHER (базовый инвентарь, остальное добавит Other.lua) ──────────
     OtherTab:Toggle({
         Title = "Enable Inventory",
         Value = false,
