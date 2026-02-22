@@ -1,7 +1,7 @@
 -- Core.lua
 print("[Core] Module started")
 
-local UI_LIBRARY_URL = "https://raw.githubusercontent.com/orialdev/WindUI-Boreal/main/WindUI%20Boreal"
+local UI_LIBRARY_URL = "https://raw.githubusercontent.com/orialdev/WindUI-Boreal/refs/heads/main/Old%20Version"
 
 print("[Core] Fetching WindUI Boreal library...")
 local success, WindUI = pcall(function()
