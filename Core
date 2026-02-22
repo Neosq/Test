@@ -16,14 +16,12 @@ end
 print("[Core] WindUI loaded successfully")
 
 local Win = WindUI:CreateWindow({
-    Title       = "Just A Hub  |  Beta 1.0.01",
-    Icon        = "github",
-    Author      = "by Neos",
-    Folder      = "JustAHub",
-    Size        = UDim2.fromOffset(600, 480),
-    Transparent = true,
-    Theme       = "Dark",
-    Resizable   = true,
+    Title        = "Just A Hub  |  Beta 1.0.01",
+    Icon         = "github",
+    Author       = "by Neos",
+    Folder       = "JustAHub",
+    Size         = UDim2.fromOffset(600, 480),
+    ModernLayout = true,
 })
 
 if not Win then
@@ -43,7 +41,8 @@ local Lighting    = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 
 local hub = {
-    Win           = Win,
+    WindUI = WindUI,  -- нужен для Notify
+    Win    = Win,
     LocalPlayer   = LocalPlayer,
     Players       = Players,
     RunService    = RunService,
@@ -87,19 +86,16 @@ local hub = {
     _deactFly        = nil,
 
     Notify = function(self, title, content, icon, duration)
-        -- В Boreal Notify вызывается через WindUI:Notify, не Win:Notify
         local ok, err = pcall(function()
-            if self.Win and self.Win.Notify then
-                self.Win:Notify({
-                    Title    = title or "Just A Hub",
-                    Content  = content or "",
-                    Icon     = icon or "info",
-                    Duration = duration or 4
-                })
-            end
+            self.WindUI:Notify({
+                Title    = title or "Just A Hub",
+                Content  = content or "",
+                Icon     = icon or "info",
+                Duration = duration or 4
+            })
         end)
         if not ok then
-            warn("[Hub Notify] " .. (title or "") .. ": " .. (content or "") .. " | err: " .. tostring(err))
+            warn("[Hub Notify] " .. (title or "") .. ": " .. tostring(err))
         end
     end,
 
