@@ -1,4 +1,4 @@
-        end
+
 -- Home.lua
 return function(Win, hub)
     local HomeTab = Win:Tab({
