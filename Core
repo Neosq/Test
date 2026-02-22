@@ -3,7 +3,7 @@
 
 print("[Core] Module started")
 
-local UI_LIBRARY_URL = "https://github.com/orialdev/WindUI-Boreal"
+local UI_LIBRARY_URL = "https://raw.githubusercontent.com/orialdev/WindUI-Boreal/main/WindUI%20Boreal"
 
 print("[Core] Fetching WindUI library...")
 local success, WindUI = pcall(function()
