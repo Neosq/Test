@@ -1,126 +1,86 @@
 -- Animation.lua
--- Other Scripts tab – Standard & Hybrid animations + Build Manager + Emotes
-
 return function(Win, hub)
     local OST = Win:Tab({
         Title = "Other Scripts",
-        Icon = "file-code"
+        Icon = "file-code",
+        Visible = true
     })
 
     local OM = OST:MultiSection({
         Title = "Animations & Extras",
-        Sections = {"Standard", "Hybrid", "Build Manager", "Emotes & Extra"}
+        Icon = "play-circle",
+        Box = true,
+        Opened = true,
     })
 
+    local StandardTab    = OM:Tab({ Title = "Standard",      Icon = "layers",     Selected = true })
+    local HybridTab      = OM:Tab({ Title = "Hybrid",        Icon = "git-merge" })
+    local BuildMgrTab    = OM:Tab({ Title = "Build Manager", Icon = "folder" })
+    local EmotesTab      = OM:Tab({ Title = "Emotes & Extra",Icon = "smile" })
+
     local animList = {
-        "Adidas Aura", "Adidas Community", "Wicked Dancing", "Catwalk Glam", "NFL",
-        "Wicked Popular", "Unboxed", "Adidas Sports", "No Boundaries", "Bold Elf",
-        "Astronaut", "Toy", "Levitation", "Ninja", "Oldschool", "Werewolf", "Zombie",
-        "Knight", "Elder", "Superhero", "Stylish", "Robot", "Rthro", "Mage",
-        "Cartoony", "Bubbly", "Vampire", "Pirate"
+        "Adidas Aura","Adidas Community","Wicked Dancing","Catwalk Glam","NFL",
+        "Wicked Popular","Unboxed","Adidas Sports","No Boundaries","Bold Elf",
+        "Astronaut","Toy","Levitation","Ninja","Oldschool","Werewolf","Zombie",
+        "Knight","Elder","Superhero","Stylish","Robot","Rthro","Mage",
+        "Cartoony","Bubbly","Vampire","Pirate"
     }
 
     local AnimationPacks = {
-        ["Adidas Aura"] = { idle = "110211186840347", walk = "83842218823011", run = "118320322718866", jump = "109996626521204", fall = "95603166884636", climb = "97824616490448", swim = "134530128383903" },
-
-    ["Adidas Community"] = { idle = "122257458498464", walk = "122150855457006", run = "82598234841035", jump = "75290611992385", fall = "98600215928904", climb = "88763136693023", swim = "133308483266208" },
-
-    ["Wicked Dancing"] = { idle = "92849173543269", walk = "73718308412641", run = "135515454877967", jump = "78508480717326", fall = "78147885297412", climb = "129447497744818", swim = "110657013921774" },
-
-    ["Catwalk Glam"] = { idle = "133806214992291", walk = "109168724482748", run = "81024476153754", jump = "116936326516985", fall = "92294537340807", climb = "119377220967554", swim = "134591743181628" },
-
-    ["NFL"] = { idle = "92080889861410", walk = "110358958299415", run = "117333533048078", jump = "119846112151352", fall = "129773241321032", climb = "134630013742019", swim = "132697394189921" },
-
-    ["Wicked Popular"] = { idle = "118832222982049", walk = "92072849924640", run = "72301599441680", jump = "104325245285198", fall = "121152442762481", climb = "131326830509784", swim = "99384245425157" },
-
-    ["Unboxed"] = { idle = "98281136301627", walk = "90478085024465", run = "134824450619865", jump = "121454505477205", fall = "94788218468396", climb = "121145883950231", swim = "105962919001086" },
-
-    ["Adidas Sports"] = { idle = "18537376492", walk = "18537392113", run = "18537384940", jump = "18537380791", fall = "18537367238", climb = "18537363391", swim = "18537389531" },
-
-    ["No Boundaries"] = { idle = "18747067405", walk = "18747074203", run = "18747070484", jump = "18747069148", fall = "18747062535", climb = "18747060903", swim = "18747073181" },
-
-    ["Bold Elf"] = { idle = "16738333868", walk = "16738340646", run = "16738333171", jump = "16738336650", fall = "16738333171", climb = "16738332169", swim = "16738339158" },
-
-    ["Astronaut"] = { idle = "10921034824", walk = "10921046031", run = "10921039308", jump = "10921042494", fall = "10921040576", climb = "10921032124", swim = "10921044000" },
-
-    ["Toy"] = { idle = "782841498", walk = "782843345", run = "782842708", jump = "782847020", fall = "782846423", climb = "782843869", swim = "782844582" },
-
-    ["Levitation"] = { idle = "616006778", walk = "616013216", run = "616010382", jump = "616008936", fall = "616005863", climb = "616003713", swim = "616011509" },
-
-    ["Ninja"] = { idle = "656117400", walk = "656121766", run = "656118852", jump = "656117878", fall = "656115606", climb = "656114359", swim = "656119721" },
-
-    ["Oldschool"] = { idle = "5319816693", walk = "5319847204", run = "5319844329", jump = "5319841935", fall = "5319839762", climb = "5319837488", swim = "5319850266" },
-
-    ["Werewolf"] = { idle = "1083195517", walk = "1083218792", run = "1083216690", jump = "1083218792", fall = "1083189019", climb = "1083182000", swim = "1083222527" },
-
-    ["Zombie"] = { idle = "616158929", walk = "616168032", run = "616163682", jump = "616161997", fall = "616157476", climb = "616156119", swim = "616165109" },
-
-    ["Knight"] = { idle = "657595757", walk = "657552124", run = "657564596", jump = "658409194", fall = "657600338", climb = "658360781", swim = "657560551" },
-
-    ["Elder"] = { idle = "845397899", walk = "845403127", run = "845403856", jump = "845398858", fall = "845396048", climb = "845392038", swim = "845401742" },
-
-    ["Superhero"] = { idle = "616111295", walk = "616122287", run = "616117076", jump = "616115533", fall = "616108001", climb = "616104706", swim = "616119360" },
-
-    ["Stylish"] = { idle = "616136790", walk = "616146177", run = "616140816", jump = "616139451", fall = "616134815", climb = "616133594", swim = "616143378" },
-
-    ["Robot"] = { idle = "616088211", walk = "616095330", run = "616091570", jump = "616090535", fall = "616087089", climb = "616086039", swim = "616092998" },
-
-    ["Rthro"] = { idle = "2510196951", walk = "2510202577", run = "2510198475", jump = "2510197830", fall = "2510195892", climb = "2510192778", swim = "2510199791" },
-
-    ["Mage"] = { idle = "707742142", walk = "707897309", run = "707861613", jump = "707853694", fall = "707829716", climb = "707826056", swim = "707876443" },
-
-    ["Cartoony"] = { idle = "742637544", walk = "742640026", run = "742638842", jump = "742637942", fall = "742637151", climb = "742636889", swim = "742639220" },
-
-    ["Bubbly"] = { idle = "910004836", walk = "910034968", run = "910034870", jump = "910028516", fall = "910001910", climb = "909997997", swim = "910030921" },
-
-    ["Vampire"] = { idle = "1083445855", walk = "1083473930", run = "1083462077", jump = "1083455352", fall = "1083443587", climb = "1083439238", swim = "1083464683" },
-
-    ["Pirate"] = { idle = "750781874", walk = "750785693", run = "750783738", jump = "750782230", fall = "750780242", climb = "750779899", swim = "750784579" },
+        ["Adidas Aura"]     = {idle="110211186840347",walk="83842218823011",run="118320322718866",jump="109996626521204",fall="95603166884636",climb="97824616490448",swim="134530128383903"},
+        ["Adidas Community"]= {idle="122257458498464",walk="122150855457006",run="82598234841035",jump="75290611992385",fall="98600215928904",climb="88763136693023",swim="133308483266208"},
+        ["Wicked Dancing"]  = {idle="92849173543269",walk="73718308412641",run="135515454877967",jump="78508480717326",fall="78147885297412",climb="129447497744818",swim="110657013921774"},
+        ["Catwalk Glam"]    = {idle="133806214992291",walk="109168724482748",run="81024476153754",jump="116936326516985",fall="92294537340807",climb="119377220967554",swim="134591743181628"},
+        ["NFL"]             = {idle="92080889861410",walk="110358958299415",run="117333533048078",jump="119846112151352",fall="129773241321032",climb="134630013742019",swim="132697394189921"},
+        ["Wicked Popular"]  = {idle="118832222982049",walk="92072849924640",run="72301599441680",jump="104325245285198",fall="121152442762481",climb="131326830509784",swim="99384245425157"},
+        ["Unboxed"]         = {idle="98281136301627",walk="90478085024465",run="134824450619865",jump="121454505477205",fall="94788218468396",climb="121145883950231",swim="105962919001086"},
+        ["Adidas Sports"]   = {idle="18537376492",walk="18537392113",run="18537384940",jump="18537380791",fall="18537367238",climb="18537363391",swim="18537389531"},
+        ["No Boundaries"]   = {idle="18747067405",walk="18747074203",run="18747070484",jump="18747069148",fall="18747062535",climb="18747060903",swim="18747073181"},
+        ["Bold Elf"]        = {idle="16738333868",walk="16738340646",run="16738333171",jump="16738336650",fall="16738333171",climb="16738332169",swim="16738339158"},
+        ["Astronaut"]       = {idle="10921034824",walk="10921046031",run="10921039308",jump="10921042494",fall="10921040576",climb="10921032124",swim="10921044000"},
+        ["Toy"]             = {idle="782841498",walk="782843345",run="782842708",jump="782847020",fall="782846423",climb="782843869",swim="782844582"},
+        ["Levitation"]      = {idle="616006778",walk="616013216",run="616010382",jump="616008936",fall="616005863",climb="616003713",swim="616011509"},
+        ["Ninja"]           = {idle="656117400",walk="656121766",run="656118852",jump="656117878",fall="656115606",climb="656114359",swim="656119721"},
+        ["Oldschool"]       = {idle="5319816693",walk="5319847204",run="5319844329",jump="5319841935",fall="5319839762",climb="5319837488",swim="5319850266"},
+        ["Werewolf"]        = {idle="1083195517",walk="1083218792",run="1083216690",jump="1083218792",fall="1083189019",climb="1083182000",swim="1083222527"},
+        ["Zombie"]          = {idle="616158929",walk="616168032",run="616163682",jump="616161997",fall="616157476",climb="616156119",swim="616165109"},
+        ["Knight"]          = {idle="657595757",walk="657552124",run="657564596",jump="658409194",fall="657600338",climb="658360781",swim="657560551"},
+        ["Elder"]           = {idle="845397899",walk="845403127",run="845403856",jump="845398858",fall="845396048",climb="845392038",swim="845401742"},
+        ["Superhero"]       = {idle="616111295",walk="616122287",run="616117076",jump="616115533",fall="616108001",climb="616104706",swim="616119360"},
+        ["Stylish"]         = {idle="616136790",walk="616146177",run="616140816",jump="616139451",fall="616134815",climb="616133594",swim="616143378"},
+        ["Robot"]           = {idle="616088211",walk="616095330",run="616091570",jump="616090535",fall="616087089",climb="616086039",swim="616092998"},
+        ["Rthro"]           = {idle="2510196951",walk="2510202577",run="2510198475",jump="2510197830",fall="2510195892",climb="2510192778",swim="2510199791"},
+        ["Mage"]            = {idle="707742142",walk="707897309",run="707861613",jump="707853694",fall="707829716",climb="707826056",swim="707876443"},
+        ["Cartoony"]        = {idle="742637544",walk="742640026",run="742638842",jump="742637942",fall="742637151",climb="742636889",swim="742639220"},
+        ["Bubbly"]          = {idle="910004836",walk="910034968",run="910034870",jump="910028516",fall="910001910",climb="909997997",swim="910030921"},
+        ["Vampire"]         = {idle="1083445855",walk="1083473930",run="1083462077",jump="1083455352",fall="1083443587",climb="1083439238",swim="1083464683"},
+        ["Pirate"]          = {idle="750781874",walk="750785693",run="750783738",jump="750782230",fall="750780242",climb="750779899",swim="750784579"},
     }
 
-    local currentBundle = "Rthro"
+    local currentBundle    = "Rthro"
     local animationsEnabled = false
 
     local function refreshAnims(char)
         local hum = char:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            for _, track in pairs(hum:GetPlayingAnimationTracks()) do
-                track:Stop(0)
-            end
-        end
+        if hum then for _, t in pairs(hum:GetPlayingAnimationTracks()) do t:Stop(0) end end
     end
 
     local function applyAnimations(char)
-        local hum = char:WaitForChild("Humanoid", 5)
+        local hum     = char:WaitForChild("Humanoid", 5)
         local animate = char:WaitForChild("Animate", 5)
         if not hum or not animate then return end
 
-        local animData = {}
-
-        if hub.HybridMode then
-            animData = {
-                idle  = hub.H_Idle  or "2510196951",
-                walk  = hub.H_Walk  or "2510202577",
-                run   = hub.H_Run   or "2510198475",
-                jump  = hub.H_Jump  or "2510197830",
-                fall  = hub.H_Fall  or "2510195892",
-                climb = hub.H_Climb or "2510192778",
-                swim  = hub.H_Swim  or "2510199791"
-            }
-        else
-            local pack = AnimationPacks[currentBundle] or AnimationPacks["Rthro"]
-            animData = pack
-        end
+        local animData = hub.HybridMode and {
+            idle=hub.H_Idle, walk=hub.H_Walk, run=hub.H_Run,
+            jump=hub.H_Jump, fall=hub.H_Fall, climb=hub.H_Climb, swim=hub.H_Swim
+        } or (AnimationPacks[currentBundle] or AnimationPacks["Rthro"])
 
         for animName, id in pairs(animData) do
             if id and id ~= "" then
-                local containerName = animName:gsub("^%l", string.upper)
-                local container = animate:FindFirstChild(animName) or animate:FindFirstChild(containerName)
+                local container = animate:FindFirstChild(animName) or animate:FindFirstChild(animName:gsub("^%l", string.upper))
                 if container then
                     for _, obj in pairs(container:GetChildren()) do
-                        if obj:IsA("Animation") then
-                            obj.AnimationId = "rbxassetid://" .. id
-                        end
+                        if obj:IsA("Animation") then obj.AnimationId = "rbxassetid://" .. id end
                     end
                 end
             end
@@ -133,73 +93,60 @@ return function(Win, hub)
         hum:ChangeState(Enum.HumanoidStateType.Landed)
     end
 
-    local function onCharacterAdded(char)
-        task.delay(0.4, function()
-            if animationsEnabled then
-                applyAnimations(char)
-            end
-        end)
-
-        char.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") and animationsEnabled then
-                task.delay(0.06, function()
-                    if char.Parent then refreshAnims(char) end
-                end)
-            end
-        end)
-
-        char.ChildRemoved:Connect(function(child)
-            if child:IsA("Tool") and animationsEnabled then
-                task.delay(0.06, function()
-                    if char.Parent then refreshAnims(char) end
-                end)
-            end
-        end)
-    end
-
-    if hub.LocalPlayer.Character then
-        task.spawn(onCharacterAdded, hub.LocalPlayer.Character)
-    end
-    hub.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-
     local function tryApplyAnims()
         if animationsEnabled and hub.LocalPlayer.Character then
             applyAnimations(hub.LocalPlayer.Character)
         end
     end
 
-    -- Standard mode
-    OM.Standard:Dropdown({
-        Title = "Select Bundle",
-        Values = animList,
-        Multi = false,
-        Value = "Rthro",
-        Flag = "SelectedAnimFlag",
-        Callback = function(v)
-            currentBundle = v
-            tryApplyAnims()
-        end
-    })
+    local function onCharacterAdded(char)
+        task.delay(0.4, function()
+            if animationsEnabled then applyAnimations(char) end
+        end)
+        char.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") and animationsEnabled then
+                task.delay(0.06, function() if char.Parent then refreshAnims(char) end end)
+            end
+        end)
+        char.ChildRemoved:Connect(function(child)
+            if child:IsA("Tool") and animationsEnabled then
+                task.delay(0.06, function() if char.Parent then refreshAnims(char) end end)
+            end
+        end)
+    end
 
-    OM.Standard:Toggle({
-        Title = "Enable Animations (Standard)",
-        Value = false,
-        Flag = "AnimToggle",
+    if hub.LocalPlayer.Character then task.spawn(onCharacterAdded, hub.LocalPlayer.Character) end
+    hub.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+    -- Standard
+    StandardTab:Dropdown({
+        Title = "Select Bundle", Values = animList, Multi = false,
+        Value = "Rthro", Flag = "SelectedAnimFlag",
+        Callback = function(v) currentBundle = v; tryApplyAnims() end
+    })
+    StandardTab:Toggle({
+        Title = "Enable Animations", Value = false, Flag = "AnimToggle",
         Callback = function(v)
             animationsEnabled = v
             hub.HybridMode = false
             tryApplyAnims()
-            if not v then
-                hub:Notify("Info", "Standard animations disabled", "info")
-            end
         end
     })
 
-    -- Hybrid mode
-    OM.Hybrid:Toggle({
-        Title = "Use Hybrid Mode",
-        Value = false,
-        Flag = "HybridEnabled",
+    -- Hybrid
+    local hybridSlots = {"Idle","Walk","Run","Jump","Fall","Climb","Swim"}
+    for _, slot in ipairs(hybridSlots) do
+        HybridTab:Dropdown({
+            Title = slot, Values = animList, Multi = false,
+            Value = hub["H_"..slot] or "Rthro", Flag = "Hybrid"..slot,
+            Callback = function(v)
+                hub["H_"..slot] = v
+                if hub.HybridMode then tryApplyAnims() end
+            end
+        })
+    end
+    HybridTab:Toggle({
+        Title = "Use Hybrid Mode", Value = false, Flag = "HybridEnabled",
         Callback = function(v)
             hub.HybridMode = v
             animationsEnabled = v
@@ -207,227 +154,161 @@ return function(Win, hub)
         end
     })
 
-    local types = {"Idle", "Walk", "Run", "Jump", "Fall", "Climb", "Swim"}
-    for _, t in ipairs(types) do
-        OM.Hybrid:Dropdown({
-            Title = "Hybrid " .. t,
-            Values = animList,
-            Multi = false,
-            Value = "Rthro",
-            Flag = "Hybrid" .. t,
-            Callback = function(v)
-                hub["H_" .. t] = v
-                task.delay(0.1, tryApplyAnims)
-            end
-        })
-    end
-
     -- Build Manager
-    OM["Build Manager"]:Divider()
-
-    local myBuilds = {}
-    local buildFile = "JustAHub_HybridBuilds.json"
-    local HttpService = game:GetService("HttpService")
+    local HttpService = hub.HttpService
+    local buildFile   = "JustAHub/builds.json"
+    local myBuilds    = {}
+    local buildDropdown
 
     local function loadBuildsFromFile()
         if isfile and isfile(buildFile) then
-            local success, data = pcall(function()
-                return HttpService:JSONDecode(readfile(buildFile))
-            end)
-            if success and type(data) == "table" then
-                myBuilds = data
-            end
+            local ok, data = pcall(function() return HttpService:JSONDecode(readfile(buildFile)) end)
+            if ok and type(data) == "table" then myBuilds = data end
         end
     end
-
     local function saveBuildsToFile()
-        if writefile then
-            writefile(buildFile, HttpService:JSONEncode(myBuilds))
-        end
+        if writefile then writefile(buildFile, HttpService:JSONEncode(myBuilds)) end
     end
-
     local function refreshBuildList()
         local names = {}
-        for name in pairs(myBuilds) do
-            table.insert(names, name)
-        end
+        for name in pairs(myBuilds) do table.insert(names, name) end
         table.sort(names)
-        buildDropdown:Refresh(names)
+        if buildDropdown then buildDropdown:Refresh(names) end
     end
 
-    task.spawn(function()
-        loadBuildsFromFile()
-        task.delay(0.5, refreshBuildList)
-    end)
+    task.spawn(function() loadBuildsFromFile(); task.delay(0.5, refreshBuildList) end)
 
     local buildNameInput = ""
-
-    OM["Build Manager"]:Input({
-        Title = "Build Name",
-        Placeholder = "Enter name...",
-        Callback = function(v)
-            buildNameInput = v
-        end
-    })
-
-    OM["Build Manager"]:Button({
-        Title = "Save Build",
-        Icon = "save",
+    BuildMgrTab:Input({ Title = "Build Name", Placeholder = "Enter name...", Callback = function(v) buildNameInput = v end })
+    BuildMgrTab:Button({
+        Title = "Save Build", Icon = "save",
         Callback = function()
-            if buildNameInput == "" then
-                hub:Notify("Error", "Enter a build name first", "alert-circle")
-                return
-            end
-
-            local current = {
-                Idle  = hub.H_Idle  or "Rthro",
-                Walk  = hub.H_Walk  or "Rthro",
-                Run   = hub.H_Run   or "Rthro",
-                Jump  = hub.H_Jump  or "Rthro",
-                Fall  = hub.H_Fall  or "Rthro",
-                Climb = hub.H_Climb or "Rthro",
-                Swim  = hub.H_Swim  or "Rthro"
+            if buildNameInput == "" then hub:Notify("Error", "Enter a build name first", "alert-circle") return end
+            myBuilds[buildNameInput] = {
+                Idle=hub.H_Idle, Walk=hub.H_Walk, Run=hub.H_Run,
+                Jump=hub.H_Jump, Fall=hub.H_Fall, Climb=hub.H_Climb, Swim=hub.H_Swim
             }
-
-            myBuilds[buildNameInput] = current
-            saveBuildsToFile()
-            refreshBuildList()
-
-            hub:Notify("Success", "Build '" .. buildNameInput .. "' saved!", "save")
+            saveBuildsToFile(); refreshBuildList()
+            hub:Notify("Success", "Build '"..buildNameInput.."' saved!", "save")
             buildNameInput = ""
         end
     })
 
-    local buildDropdown = OM["Build Manager"]:Dropdown({
-        Title = "Saved Builds",
-        Values = {},
-        Multi = false,
-        Value = "",
-        Flag = "SelectedBuild",
+    buildDropdown = BuildMgrTab:Dropdown({
+        Title = "Saved Builds", Values = {}, Multi = false, Value = "", Flag = "SelectedBuild",
         Callback = function(selected)
             if myBuilds[selected] then
-                local build = myBuilds[selected]
-
-                hub.H_Idle  = build.Idle
-                hub.H_Walk  = build.Walk
-                hub.H_Run   = build.Run
-                hub.H_Jump  = build.Jump
-                hub.H_Fall  = build.Fall
-                hub.H_Climb = build.Climb
-                hub.H_Swim  = build.Swim
-
-                hub.HybridMode = true
-                hub.Win.Flags["HybridEnabled"] = true
-
-                hub.Win.Flags["HybridIdle"]  = build.Idle
-                hub.Win.Flags["HybridWalk"]  = build.Walk
-                hub.Win.Flags["HybridRun"]   = build.Run
-                hub.Win.Flags["HybridJump"]  = build.Jump
-                hub.Win.Flags["HybridFall"]  = build.Fall
-                hub.Win.Flags["HybridClimb"] = build.Climb
-                hub.Win.Flags["HybridSwim"]  = build.Swim
-
+                local b = myBuilds[selected]
+                hub.H_Idle=b.Idle; hub.H_Walk=b.Walk; hub.H_Run=b.Run
+                hub.H_Jump=b.Jump; hub.H_Fall=b.Fall; hub.H_Climb=b.Climb; hub.H_Swim=b.Swim
+                hub.HybridMode = true; animationsEnabled = true
                 tryApplyAnims()
-
-                hub:Notify("Loaded", "Build '" .. selected .. "' loaded", "check")
+                hub:Notify("Loaded", "Build '"..selected.."' loaded", "check")
             end
         end
     })
 
-    OM["Build Manager"]:Button({
-        Title = "Copy Build Code",
-        Icon = "copy",
+    BuildMgrTab:Button({
+        Title = "Copy Build Code", Icon = "copy",
         Callback = function()
             local parts = {}
-            local order = {"Idle", "Walk", "Run", "Jump", "Fall", "Climb", "Swim"}
-
-            for _, t in ipairs(order) do
-                local name = hub["H_" .. t] or "Rthro"
-                local idx = table.find(animList, name) or 23
-                table.insert(parts, tostring(idx))
+            for _, t in ipairs(hybridSlots) do
+                table.insert(parts, tostring(table.find(animList, hub["H_"..t]) or 23))
             end
-
             local code = table.concat(parts, "-")
             setclipboard(code)
-            hub:Notify("Copied", "Build code: " .. code, "clipboard")
+            hub:Notify("Copied", "Build code: "..code, "clipboard")
         end
     })
 
-    OM["Build Manager"]:Input({
-        Title = "Paste Sharing Code",
-        Placeholder = "Example: 5-12-8-15-3-27-19",
+    BuildMgrTab:Input({
+        Title = "Paste Sharing Code", Placeholder = "Example: 5-12-8-15-3-27-19",
         Callback = function(code)
             if not code or code == "" then return end
-
             local nums = string.split(code, "-")
-            if #nums ~= 7 then
-                hub:Notify("Error", "Code must have 7 numbers", "x")
-                return
-            end
-
-            local order = {"Idle", "Walk", "Run", "Jump", "Fall", "Climb", "Swim"}
-
+            if #nums ~= 7 then hub:Notify("Error", "Code must have 7 numbers", "x") return end
             for i, numStr in ipairs(nums) do
                 local idx = tonumber(numStr)
                 if idx and idx >= 1 and idx <= #animList then
-                    local name = animList[idx]
-                    hub["H_" .. order[i]] = name
-                    hub.Win.Flags["Hybrid" .. order[i]] = name
+                    hub["H_"..hybridSlots[i]] = animList[idx]
                 end
             end
-
-            hub.HybridMode = true
-            hub.Win.Flags["HybridEnabled"] = true
+            hub.HybridMode = true; animationsEnabled = true
             tryApplyAnims()
-
             hub:Notify("Success", "Code applied – Hybrid mode enabled", "check")
         end
     })
 
     -- Emotes & Extra
-    OM["Emotes & Extra"]:Button({
-        Title = "Load Emotes GUI",
-        Icon = "smile",
+    EmotesTab:Button({
+        Title = "Load Emotes GUI", Icon = "smile",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/7yd7/Hub/refs/heads/Branch/GUIS/Emotes.lua"))()
             hub:Notify("Loaded", "Emotes GUI executed", "check", 4)
         end
     })
 
-    -- Extra Tools & Scripts (new MultiSection)
+    -- Extra Tools & Scripts
     local ExtraMS = OST:MultiSection({
         Title = "Extra Tools & Scripts",
-        Sections = {"Infinite Yield", "Player"}
+        Icon = "terminal",
+        Box = true,
+        Opened = false,
     })
 
-    ExtraMS["Infinite Yield"]:Button({
-        Title = "Load Infinite Yield",
-        Icon = "terminal",
+    local IYTab     = ExtraMS:Tab({ Title = "Infinite Yield", Icon = "terminal",  Selected = true })
+    local PlayerTab2 = ExtraMS:Tab({ Title = "Player",         Icon = "user" })
+
+    IYTab:Button({
+        Title = "Load Infinite Yield", Icon = "terminal",
         Callback = function()
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
             hub:Notify("Loaded", "Infinite Yield executed", "terminal", 4)
         end
     })
 
-    ExtraMS["Player"]:Button({
-        Title = "Load Hitbox Expander",
-        Icon = "target",
+    -- Hydroxide
+    IYTab:Divider()
+    IYTab:Button({
+        Title = "Load Hydroxide", Icon = "activity",
+        Callback = function()
+            local owner  = "Hosvile"
+            local branch = "revision"
+            local function webImport(file)
+                return loadstring(
+                    game:HttpGetAsync(("https://raw.githubusercontent.com/%s/MC-Hydroxide/%s/%s.lua"):format(owner, branch, file)),
+                    file .. ".lua"
+                )()
+            end
+            local ok, err = pcall(function()
+                webImport("init")
+                webImport("ui/main")
+            end)
+            if ok then
+                hub:Notify("Loaded", "Hydroxide executed", "activity", 4)
+            else
+                hub:Notify("Error", "Hydroxide failed: " .. tostring(err), "x", 6)
+            end
+        end
+    })
+
+    PlayerTab2:Button({
+        Title = "Load Hitbox Expander", Icon = "target",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Vcsk/RobloxScripts/main/HitboxExpander.lua"))()
             hub:Notify("Loaded", "Hitbox Expander executed", "target", 4)
         end
     })
 
-    ExtraMS["Player"]:Button({
-        Title = "Load Fling GUI",
-        Icon = "move-3d",
+    PlayerTab2:Button({
+        Title = "Load Fling GUI", Icon = "move-3d",
         Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/0Ben1/fe./main/Fling%20GUI"))()
             hub:Notify("Loaded", "Fling GUI executed", "move-3d", 4)
         end
     })
 
-    ExtraMS["Player"]:Paragraph({
+    PlayerTab2:Paragraph({
         Title = "Note",
         Desc = "External scripts from GitHub.\nUse at your own risk."
     })
