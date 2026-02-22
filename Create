@@ -1,11 +1,15 @@
 -- create.lua
 -- Script generator tab (Movement scripts + Firing + ESP Parts)
 
+local espPartName = ""
+local espPartColor = Color3.fromRGB(255, 0, 0)
+local espPartEnabled = false
+local espPartHighlights = {}
+local globalFireType = "ProximityPrompt"
 return function(Win, hub)
     local CT = Win:Tab({
         Title = "Create",
         Icon = "code",
-        Visible = true
     })
 
     CT:Paragraph({
